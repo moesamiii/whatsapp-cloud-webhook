@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Clinic Dashboard - Analytics</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="./img/dummy-conan.jpeg" />
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="./dashboard.css" />
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF AutoTable plugin for tables -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+      /* Download Report Button Styles */
+      .download-report-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #d946ef 0%, #a855f7 100%);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(217, 70, 239, 0.3);
+        font-family: "Cairo", sans-serif;
+      }
+
+      .download-report-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(217, 70, 239, 0.4);
+        background: linear-gradient(135deg, #e879f9 0%, #c084fc 100%);
+      }
+
+      .download-report-btn:active {
+        transform: translateY(0);
+      }
+
+      .download-report-btn i {
+        font-size: 18px;
+      }
+
+      .download-report-btn.loading {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      .download-report-btn.loading i {
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .report-section {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 20px;
+        padding: 0 10px;
+      }
+
+      /* Toast notification */
+      .toast {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: #22c55e;
+        color: white;
+        padding: 16px 32px;
+        border-radius: 12px;
+        font-weight: 600;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        opacity: 0;
+        transition: all 0.3s ease;
+        z-index: 9999;
+      }
+
+      .toast.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+
+      .toast.error {
+        background: #ef4444;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <!-- SIDEBAR -->
+      <aside class="sidebar" id="sidebar">
+        <div class="logo">
+          <span>CONAN DASHBOARD</span>
+        </div>
+        <nav class="menu">
+          <a href="dashboard.html">
+            <i class="fa-solid fa-gauge"></i>
+            لوحة القيادة
+          </a>
+
+          <a href="notifications.html" id="notificationLink">
+            <i class="fa-solid fa-bell"></i>
+            التنبيهات
+          </a>
+
+          <a href="analytics.html" class="active">
+            <i class="fa-solid fa-rocket"></i>
+            تحليلات
+          </a>
+          <a href="booking.html">
+            <i class="fa-solid fa-table"></i>
+            جدول التواصل
+          </a>
+
+          <!-- ✅ NEW MENU ITEM ADDED HERE -->
+          <a href="contactlist.html">
+            <i class="fa-solid fa-address-book"></i>
+            قائمة التواصل
+          </a>
+          <!-- ✅ END NEW ITEM -->
+
+          <a href="AIsettings.html">
+            <i class="fa-solid fa-robot"></i>
+            إعدادات الذكاء الاصطناعي
+          </a>
+
+          <a href="offers.html">
+            <i class="fa-solid fa-gift"></i>
+            الحملات الاعلانية
+          </a>
+        </nav>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="main-content" id="dashboardContent">
+        <header class="header">
+          <div class="header-left">
+            <button class="menu-toggle icon-btn" id="menuToggle">
+              <i class="fa-solid fa-bars"></i>
+            </button>
+            <h1>تحليلات</h1>
+          </div>
+          <div class="header-right">
+            <button class="icon-btn" id="themeToggle">
+              <i class="fa-regular fa-moon"></i>
+            </button>
+          </div>
+        </header>
+
+        <!-- DOWNLOAD REPORT BUTTON SECTION -->
+        <section class="report-section">
+          <button
+            class="download-report-btn"
+            id="downloadReportBtn"
+            onclick="generateReport()"
+          >
+            <i class="fa-solid fa-file-pdf"></i>
+            تحميل التقرير
+          </button>
+        </section>
+
+        <!-- DASHBOARD GRID -->
+        <section class="dashboard-grid">
+          <div class="card">
+            <h3>توزيع الخدمات</h3>
+            <div class="chart-container">
+              <canvas id="bar"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>تفصيل الحجز</h3>
+            <div class="chart-container">
+              <canvas id="pie"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <footer>© 2025 Smile Clinic</footer>
+      </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+      const SUPABASE_URL = "https://ylsbmxedhycjqaorjkvm.supabase.co";
+      const SUPABASE_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc2JteGVkaHljanFhb3Jqa3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTk5NTUsImV4cCI6MjA3NjM5NTk1NX0.W61xOww2neu6RA4yCJUob66p4OfYcgLSVw3m3yttz1E";
+      const supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+      );
+
+      let bar, pie;
+      let allData = [];
+      const q = (s) => document.querySelector(s);
+
+      // Function to check if text contains Arabic characters
+      function containsArabic(text) {
+        if (!text) return false;
+        return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(
+          text
+        );
+      }
+
+      // Function to sanitize text for PDF (remove Arabic, keep English)
+      function sanitizeForPDF(text, fallback) {
+        if (!text) return fallback;
+        if (!containsArabic(text)) return text;
+        return fallback;
+      }
+
+      // Show toast notification
+      function showToast(message, isError = false) {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.className = isError ? "toast error show" : "toast show";
+        setTimeout(() => {
+          toast.className = "toast";
+        }, 3000);
+      }
+
+      // GENERATE PDF REPORT FUNCTION - ENGLISH ONLY
+      async function generateReport() {
+        const btn = document.getElementById("downloadReportBtn");
+
+        if (allData.length === 0) {
+          showToast("No data available to generate report", true);
+          return;
+        }
+
+        // Set loading state
+        btn.classList.add("loading");
+        btn.innerHTML = '<i class="fa-solid fa-spinner"></i> Loading...';
+
+        try {
+          const { jsPDF } = window.jspdf;
+          const doc = new jsPDF("p", "mm", "a4");
+
+          const pageWidth = doc.internal.pageSize.getWidth();
+          const pageHeight = doc.internal.pageSize.getHeight();
+          const margin = 20;
+          let yPos = margin;
+
+          // ============ HEADER SECTION ============
+          doc.setFillColor(217, 70, 239);
+          doc.rect(0, 0, pageWidth, 45, "F");
+
+          doc.setTextColor(255, 255, 255);
+          doc.setFontSize(24);
+          doc.setFont("helvetica", "bold");
+          doc.text("Smile Clinic - Analytics Report", pageWidth / 2, 20, {
+            align: "center",
+          });
+
+          doc.setFontSize(12);
+          doc.setFont("helvetica", "normal");
+          const currentDate = new Date().toLocaleDateString("en-US", {
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          doc.text("Generated: " + currentDate, pageWidth / 2, 32, {
+            align: "center",
+          });
+
+          yPos = 55;
+
+          // ============ CALCULATE STATISTICS ============
+          const totalBookings = allData.length;
+
+          // Create service mapping (Arabic to English labels)
+          const uniqueServices = [...new Set(allData.map((b) => b.service))];
+          const serviceMapping = {};
+          uniqueServices.forEach((service, index) => {
+            if (containsArabic(service)) {
+              serviceMapping[service] = "Service " + (index + 1);
+            } else {
+              serviceMapping[service] = service || "Unknown Service";
+            }
+          });
+
+          // Count services using English labels
+          const serviceCount = {};
+          const dayCount = [0, 0, 0, 0, 0, 0, 0];
+          const dayNames = [
+            "Sunday",
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+          ];
+
+          allData.forEach((b) => {
+            const englishService =
+              serviceMapping[b.service] || "Unknown Service";
+            serviceCount[englishService] =
+              (serviceCount[englishService] || 0) + 1;
+            if (b.time) {
+              const day = new Date(b.time).getDay();
+              dayCount[day]++;
+            }
+          });
+
+          const sortedServices = Object.entries(serviceCount).sort(
+            (a, b) => b[1] - a[1]
+          );
+          const topService = sortedServices[0];
+          const busiestDayIndex = dayCount.indexOf(Math.max(...dayCount));
+          const busiestDay = dayNames[busiestDayIndex];
+
+          // ============ SUMMARY STATISTICS ============
+          doc.setTextColor(50, 50, 50);
+          doc.setFontSize(16);
+          doc.setFont("helvetica", "bold");
+          doc.text("Summary Statistics", margin, yPos);
+          yPos += 10;
+
+          doc.setFillColor(249, 250, 251);
+          doc.roundedRect(margin, yPos, pageWidth - margin * 2, 35, 5, 5, "F");
+
+          doc.setFontSize(11);
+          doc.setFont("helvetica", "normal");
+          doc.setTextColor(80, 80, 80);
+
+          yPos += 10;
+          doc.text("Total Bookings: " + totalBookings, margin + 10, yPos);
+          doc.text(
+            "Number of Services: " + Object.keys(serviceCount).length,
+            pageWidth / 2,
+            yPos
+          );
+
+          yPos += 10;
+          doc.text(
+            "Most Popular Service: " +
+              (topService
+                ? topService[0] + " (" + topService[1] + " bookings)"
+                : "N/A"),
+            margin + 10,
+            yPos
+          );
+
+          yPos += 10;
+          doc.text(
+            "Busiest Day: " +
+              busiestDay +
+              " (" +
+              dayCount[busiestDayIndex] +
+              " bookings)",
+            margin + 10,
+            yPos
+          );
+
+          yPos += 20;
+
+          // ============ SERVICES DISTRIBUTION TABLE ============
+          doc.setTextColor(50, 50, 50);
+          doc.setFontSize(16);
+          doc.setFont("helvetica", "bold");
+          doc.text("Services Distribution", margin, yPos);
+          yPos += 8;
+
+          const servicesTableData = sortedServices.map(([service, count]) => {
+            const percentage = ((count / totalBookings) * 100).toFixed(1);
+            return [service, count.toString(), percentage + "%"];
+          });
+
+          doc.autoTable({
+            startY: yPos,
+            head: [["Service", "Bookings", "Percentage"]],
+            body: servicesTableData,
+            margin: { left: margin, right: margin },
+            headStyles: {
+              fillColor: [217, 70, 239],
+              textColor: [255, 255, 255],
+              fontStyle: "bold",
+              halign: "center",
+            },
+            bodyStyles: {
+              halign: "center",
+            },
+            alternateRowStyles: {
+              fillColor: [249, 250, 251],
+            },
+            styles: {
+              fontSize: 10,
+              cellPadding: 5,
+            },
+          });
+
+          yPos = doc.lastAutoTable.finalY + 15;
+
+          // ============ WEEKLY DISTRIBUTION TABLE ============
+          doc.setTextColor(50, 50, 50);
+          doc.setFontSize(16);
+          doc.setFont("helvetica", "bold");
+          doc.text("Weekly Distribution", margin, yPos);
+          yPos += 8;
+
+          const weeklyTableData = dayNames.map((day, index) => {
+            const count = dayCount[index];
+            const percentage =
+              totalBookings > 0
+                ? ((count / totalBookings) * 100).toFixed(1)
+                : "0.0";
+            return [day, count.toString(), percentage + "%"];
+          });
+
+          doc.autoTable({
+            startY: yPos,
+            head: [["Day", "Bookings", "Percentage"]],
+            body: weeklyTableData,
+            margin: { left: margin, right: margin },
+            headStyles: {
+              fillColor: [168, 85, 247],
+              textColor: [255, 255, 255],
+              fontStyle: "bold",
+              halign: "center",
+            },
+            bodyStyles: {
+              halign: "center",
+            },
+            alternateRowStyles: {
+              fillColor: [249, 250, 251],
+            },
+            styles: {
+              fontSize: 10,
+              cellPadding: 5,
+            },
+          });
+
+          yPos = doc.lastAutoTable.finalY + 15;
+
+          // Check if we need a new page
+          if (yPos > pageHeight - 60) {
+            doc.addPage();
+            yPos = margin;
+          }
+
+          // ============ ALL BOOKINGS LIST ============
+          doc.setTextColor(50, 50, 50);
+          doc.setFontSize(16);
+          doc.setFont("helvetica", "bold");
+          doc.text("All Bookings Details", margin, yPos);
+          yPos += 8;
+
+          const bookingsTableData = allData.map((booking, index) => {
+            const bookingDate = booking.time
+              ? new Date(booking.time).toLocaleString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })
+              : "N/A";
+
+            // Use English labels for everything
+            const customerLabel = "Customer " + (index + 1);
+            const phoneNumber = booking.phone || "N/A";
+            const serviceLabel =
+              serviceMapping[booking.service] || "Unknown Service";
+
+            return [
+              (index + 1).toString(),
+              customerLabel,
+              phoneNumber,
+              serviceLabel,
+              bookingDate,
+            ];
+          });
+
+          doc.autoTable({
+            startY: yPos,
+            head: [["#", "Customer", "Phone", "Service", "Date/Time"]],
+            body: bookingsTableData,
+            margin: { left: margin, right: margin },
+            headStyles: {
+              fillColor: [236, 72, 153],
+              textColor: [255, 255, 255],
+              fontStyle: "bold",
+              halign: "center",
+            },
+            bodyStyles: {
+              halign: "center",
+              fontSize: 9,
+            },
+            alternateRowStyles: {
+              fillColor: [249, 250, 251],
+            },
+            styles: {
+              fontSize: 9,
+              cellPadding: 4,
+            },
+            columnStyles: {
+              0: { cellWidth: 10 },
+              1: { cellWidth: 35 },
+              2: { cellWidth: 35 },
+              3: { cellWidth: 40 },
+              4: { cellWidth: 45 },
+            },
+          });
+
+          // ============ FOOTER ON EACH PAGE ============
+          const totalPages = doc.internal.getNumberOfPages();
+          for (let i = 1; i <= totalPages; i++) {
+            doc.setPage(i);
+            doc.setFontSize(9);
+            doc.setTextColor(150, 150, 150);
+            doc.text(
+              "Page " +
+                i +
+                " of " +
+                totalPages +
+                " | Smile Clinic Analytics Report",
+              pageWidth / 2,
+              pageHeight - 10,
+              { align: "center" }
+            );
+          }
+
+          // Save the PDF
+          const fileName =
+            "Smile_Clinic_Report_" +
+            new Date().toISOString().split("T")[0] +
+            ".pdf";
+          doc.save(fileName);
+
+          showToast("Report downloaded successfully!");
+        } catch (error) {
+          console.error("Error generating report:", error);
+          showToast("Error generating report", true);
+        } finally {
+          // Reset button state
+          btn.classList.remove("loading");
+          btn.innerHTML = '<i class="fa-solid fa-file-pdf"></i> تحميل التقرير';
+        }
+      }
+
+      // LOAD BOOKINGS (SAME AS BOOKING.HTML)
+      async function load() {
+        const { data, error } = await supabaseClient
+          .from("bookings")
+          .select("*")
+          .order("time", { ascending: false });
+
+        if (error) {
+          console.error(error);
+          return;
+        }
+
+        allData = data;
+        drawCharts(allData);
+      }
+
+      function drawCharts(d) {
+        const sc = {};
+        d.forEach((b) => (sc[b.service] = (sc[b.service] || 0) + 1));
+        const labels = Object.keys(sc);
+        const vals = Object.values(sc);
+
+        if (bar) bar.destroy();
+        if (pie) pie.destroy();
+
+        bar = new Chart(q("#bar"), {
+          type: "bar",
+          data: {
+            labels,
+            datasets: [
+              {
+                data: vals,
+                backgroundColor: "rgba(217, 70, 239, 0.8)",
+                borderRadius: 8,
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: "rgba(0,0,0,0.05)",
+                },
+              },
+              x: {
+                grid: { display: false },
+              },
+            },
+          },
+        });
+
+        pie = new Chart(q("#pie"), {
+          type: "doughnut",
+          data: {
+            labels,
+            datasets: [
+              {
+                data: vals,
+                backgroundColor: [
+                  "#d946ef",
+                  "#a855f7",
+                  "#ec4899",
+                  "#f97316",
+                  "#3b82f6",
+                ],
+                borderWidth: 0,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: "bottom",
+                labels: {
+                  usePointStyle: true,
+                  padding: 20,
+                  font: {
+                    family: "'Cairo', sans-serif",
+                  },
+                },
+              },
+            },
+            cutout: "70%",
+          },
+        });
+
+        const weekData = getWeeklyData(d);
+        line = new Chart(q("#line"), {
+          type: "line",
+          data: {
+            labels: weekData.labels,
+            datasets: [
+              {
+                label: "الحجوزات",
+                data: weekData.values,
+                borderColor: "#d946ef",
+                backgroundColor: "rgba(217, 70, 239, 0.1)",
+                fill: true,
+                tension: 0.4,
+                borderWidth: 3,
+                pointRadius: 5,
+                pointBackgroundColor: "#d946ef",
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+            },
+            scales: {
+              y: {
+                beginAtZero: true,
+                grid: {
+                  color: "rgba(0,0,0,0.05)",
+                },
+              },
+              x: {
+                grid: { display: false },
+              },
+            },
+          },
+        });
+      }
+
+      function getWeeklyData(d) {
+        const days = [
+          "الأحد",
+          "الاثنين",
+          "الثلاثاء",
+          "الأربعاء",
+          "الخميس",
+          "الجمعة",
+          "السبت",
+        ];
+        const counts = [0, 0, 0, 0, 0, 0, 0];
+        d.forEach((b) => {
+          if (b.time) {
+            const day = new Date(b.time).getDay();
+            counts[day]++;
+          }
+        });
+        return { labels: days, values: counts };
+      }
+
+      // Theme toggle
+      const themeToggle = document.getElementById("themeToggle");
+      themeToggle.addEventListener("click", function () {
+        document.body.classList.toggle("dark");
+        const icon = themeToggle.querySelector("i");
+        if (document.body.classList.contains("dark")) {
+          icon.classList.remove("fa-moon");
+          icon.classList.add("fa-sun");
+          localStorage.setItem("clinic_theme", "dark");
+        } else {
+          icon.classList.remove("fa-sun");
+          icon.classList.add("fa-moon");
+          localStorage.setItem("clinic_theme", "light");
+        }
+      });
+
+      if (localStorage.getItem("clinic_theme") === "dark") {
+        document.body.classList.add("dark");
+        const icon = themeToggle.querySelector("i");
+        icon.classList.remove("fa-moon");
+        icon.classList.add("fa-sun");
+      }
+
+      // Sidebar toggle
+      const menuToggle = document.getElementById("menuToggle");
+      const sidebar = document.getElementById("sidebar");
+      menuToggle.addEventListener("click", () => {
+        sidebar.classList.toggle("active");
+      });
+
+      // Load analytics data
+      load();
+      setInterval(load, 15000);
+    </script>
+  </body>
+</html>
