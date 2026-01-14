@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>قائمة التواصل - Smile Clinic</title>
+
+    <link rel="icon" type="image/png" href="./img/dummy-conan.jpeg" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="./dashboard.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- SheetJS for Excel file parsing -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+      @media (min-width: 1024px) {
+        .dashboard-grid {
+          width: 100%;
+          display: flex;
+          justify-content: center;
+        }
+        .table-card {
+          width: 100% !important;
+          max-width: none !important;
+          margin: 0;
+        }
+      }
+
+      input,
+      button {
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+      }
+
+      body.dark input {
+        background: #333;
+        color: #fff;
+        border-color: #555;
+      }
+
+      .add-contact-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+        align-items: center;
+      }
+
+      .add-contact-form input {
+        flex: 1 1 200px;
+      }
+
+      .add-contact-form button {
+        background: #7c3aed;
+        color: white;
+        border: none;
+        cursor: pointer;
+        padding: 8px 16px;
+      }
+
+      .success-msg {
+        color: green;
+        margin-top: 10px;
+        display: none;
+      }
+
+      .error-msg {
+        color: red;
+        margin-top: 10px;
+        display: none;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: center;
+      }
+
+      th {
+        background: #f4f4f4;
+      }
+
+      body.dark th {
+        background: #222;
+      }
+
+      /* ========== EXPORT SECTION STYLES ========== */
+      .export-section {
+        background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);
+        border: 2px solid #d946ef;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 15px;
+      }
+
+      body.dark .export-section {
+        background: linear-gradient(135deg, #4a1d6a 0%, #581c87 100%);
+        border-color: #e879f9;
+      }
+
+      .export-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+
+      .export-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, #d946ef 0%, #a855f7 100%);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+      }
+
+      .export-text h4 {
+        margin: 0 0 4px 0;
+        font-size: 16px;
+        color: #7e22ce;
+      }
+
+      body.dark .export-text h4 {
+        color: #e879f9;
+      }
+
+      .export-text p {
+        margin: 0;
+        font-size: 13px;
+        color: #6b7280;
+      }
+
+      body.dark .export-text p {
+        color: #d1d5db;
+      }
+
+      .export-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 28px;
+        background: linear-gradient(135deg, #d946ef 0%, #a855f7 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(217, 70, 239, 0.3);
+      }
+
+      .export-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(217, 70, 239, 0.4);
+        background: linear-gradient(135deg, #e879f9 0%, #c084fc 100%);
+      }
+
+      .export-btn:active {
+        transform: translateY(0);
+      }
+
+      .export-btn i {
+        font-size: 18px;
+      }
+
+      .contact-count-badge {
+        background: rgba(217, 70, 239, 0.15);
+        color: #a855f7;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      body.dark .contact-count-badge {
+        background: rgba(217, 70, 239, 0.3);
+        color: #e879f9;
+      }
+
+      /* ========== IMPORT SECTION STYLES ========== */
+      .import-section {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 2px dashed #7c3aed;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+
+      body.dark .import-section {
+        background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+        border-color: #a78bfa;
+      }
+
+      .import-section:hover {
+        border-color: #5b21b6;
+        background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
+      }
+
+      body.dark .import-section:hover {
+        background: linear-gradient(135deg, #312e81 0%, #4c1d95 100%);
+        border-color: #c4b5fd;
+      }
+
+      .import-section.dragover {
+        border-color: #22c55e;
+        background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%);
+        transform: scale(1.02);
+      }
+
+      body.dark .import-section.dragover {
+        background: linear-gradient(135deg, #14532d 0%, #166534 100%);
+      }
+
+      .import-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #5b21b6;
+        margin-bottom: 10px;
+      }
+
+      body.dark .import-title {
+        color: #c4b5fd;
+      }
+
+      .import-description {
+        color: #6b7280;
+        margin-bottom: 15px;
+        font-size: 14px;
+      }
+
+      body.dark .import-description {
+        color: #9ca3af;
+      }
+
+      .import-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .import-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 24px;
+        background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+      }
+
+      .import-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(34, 197, 94, 0.4);
+        background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+      }
+
+      .import-btn:active {
+        transform: translateY(0);
+      }
+
+      .import-btn.loading {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+
+      .import-btn.loading i {
+        animation: spin 1s linear infinite;
+      }
+
+      .download-template-btn {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+      }
+
+      .download-template-btn:hover {
+        background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+        box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+      }
+
+      @keyframes spin {
+        from {
+          transform: rotate(0deg);
+        }
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .file-input {
+        display: none;
+      }
+
+      .import-stats {
+        margin-top: 15px;
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 8px;
+        display: none;
+      }
+
+      body.dark .import-stats {
+        background: rgba(0, 0, 0, 0.3);
+      }
+
+      .import-stats.show {
+        display: block;
+      }
+
+      .import-stats p {
+        margin: 5px 0;
+        font-size: 14px;
+      }
+
+      .import-stats .success {
+        color: #16a34a;
+      }
+
+      .import-stats .error {
+        color: #dc2626;
+      }
+
+      .import-stats .info {
+        color: #2563eb;
+      }
+
+      body.dark .import-stats .success {
+        color: #4ade80;
+      }
+
+      body.dark .import-stats .error {
+        color: #f87171;
+      }
+
+      body.dark .import-stats .info {
+        color: #60a5fa;
+      }
+
+      /* Toast notification */
+      .toast {
+        position: fixed;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: #22c55e;
+        color: white;
+        padding: 16px 32px;
+        border-radius: 12px;
+        font-weight: 600;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        opacity: 0;
+        transition: all 0.3s ease;
+        z-index: 9999;
+      }
+
+      .toast.show {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
+
+      .toast.error {
+        background: #ef4444;
+      }
+
+      .toast.warning {
+        background: #f59e0b;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="container">
+      <!-- SIDEBAR -->
+      <aside class="sidebar" id="sidebar">
+        <div class="logo">
+          <span>CONAN DASHBOARD</span>
+        </div>
+        <nav class="menu">
+          <a href="dashboard.html">
+            <i class="fa-solid fa-gauge"></i>
+            لوحة القيادة
+          </a>
+
+          <a href="notifications.html" id="notificationLink">
+            <i class="fa-solid fa-bell"></i>
+            التنبيهات
+          </a>
+
+          <a href="analytics.html">
+            <i class="fa-solid fa-rocket"></i>
+            تحليلات
+          </a>
+          <a href="booking.html">
+            <i class="fa-solid fa-table"></i>
+            جدول التواصل
+          </a>
+
+          <!-- ✅ NEW MENU ITEM ADDED HERE -->
+          <a href="contactlist.html" class="active">
+            <i class="fa-solid fa-address-book"></i>
+            قائمة التواصل
+          </a>
+          <!-- ✅ END NEW ITEM -->
+
+          <a href="AIsettings.html">
+            <i class="fa-solid fa-robot"></i>
+            إعدادات الذكاء الاصطناعي
+          </a>
+
+          <a href="offers.html">
+            <i class="fa-solid fa-gift"></i>
+            الحملات الاعلانية
+          </a>
+        </nav>
+      </aside>
+
+      <!-- MAIN -->
+      <main class="main-content" id="dashboardContent">
+        <header class="header">
+          <div class="header-left">
+            <button class="menu-toggle icon-btn" id="menuToggle">
+              <i class="fa-solid fa-bars"></i>
+            </button>
+            <h1>قائمة التواصل</h1>
+          </div>
+          <div class="header-right">
+            <button class="icon-btn" id="themeToggle">
+              <i class="fa-regular fa-moon"></i>
+            </button>
+          </div>
+        </header>
+
+        <section class="dashboard-grid">
+          <div class="table-card">
+            <h3>إدارة قائمة التواصل</h3>
+
+            <!-- ✅ EXPORT TO EXCEL SECTION -->
+            <div class="export-section">
+              <div class="export-info">
+                <div class="export-icon">
+                  <i class="fa-solid fa-file-excel"></i>
+                </div>
+                <div class="export-text">
+                  <h4>تصدير جهات الاتصال</h4>
+                  <p>قم بتحميل جميع جهات الاتصال كملف Excel</p>
+                </div>
+                <span class="contact-count-badge" id="contactCountBadge"
+                  >0 جهة اتصال</span
+                >
+              </div>
+              <button class="export-btn" onclick="exportToExcel()">
+                <i class="fa-solid fa-download"></i>
+                تصدير إلى Excel
+              </button>
+            </div>
+            <!-- ✅ END EXPORT SECTION -->
+
+            <!-- ✅ IMPORT FROM EXCEL SECTION -->
+            <div class="import-section" id="importSection">
+              <div class="import-title">
+                <i class="fa-solid fa-file-excel"></i>
+                استيراد جهات الاتصال من Excel
+              </div>
+              <div class="import-description">
+                اسحب ملف Excel هنا أو اضغط على زر الاستيراد<br />
+                <small
+                  >يجب أن يحتوي الملف على عمودين: الاسم (name) ورقم الهاتف
+                  (phone)</small
+                >
+              </div>
+              <div class="import-buttons">
+                <button
+                  class="import-btn"
+                  id="importBtn"
+                  onclick="document.getElementById('excelFileInput').click()"
+                >
+                  <i class="fa-solid fa-file-import"></i>
+                  استيراد من Excel
+                </button>
+                <button
+                  class="import-btn download-template-btn"
+                  id="downloadTemplateBtn"
+                  onclick="downloadTemplate()"
+                >
+                  <i class="fa-solid fa-download"></i>
+                  تحميل نموذج Excel
+                </button>
+              </div>
+              <input
+                type="file"
+                id="excelFileInput"
+                class="file-input"
+                accept=".xlsx,.xls,.csv"
+                onchange="handleFileSelect(event)"
+              />
+
+              <div class="import-stats" id="importStats">
+                <p class="info" id="totalRows">إجمالي الصفوف: 0</p>
+                <p class="success" id="successRows">تم استيرادها بنجاح: 0</p>
+                <p class="error" id="errorRows">فشل الاستيراد: 0</p>
+                <p class="info" id="duplicateRows">مكررة (تم تخطيها): 0</p>
+              </div>
+            </div>
+            <!-- ✅ END IMPORT SECTION -->
+
+            <!-- ✅ Add new contact form -->
+            <div class="add-contact-form">
+              <input type="text" id="contactName" placeholder="الاسم" />
+              <input type="text" id="contactPhone" placeholder="رقم الهاتف" />
+              <button id="addContactBtn">
+                <i class="fa-solid fa-plus"></i> إضافة جهة اتصال
+              </button>
+            </div>
+            <p class="success-msg" id="successMsg">
+              ✅ تم إضافة جهة الاتصال بنجاح
+            </p>
+            <p class="error-msg" id="errorMsg">❌ حدث خطأ أثناء الإضافة</p>
+
+            <table id="contactTable">
+              <thead>
+                <tr>
+                  <th>الاسم</th>
+                  <th>الهاتف</th>
+                  <th>تاريخ الإضافة</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <footer>© 2025 Smile Clinic</footer>
+      </main>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+      // ✅ FIXED: Supabase setup using supabaseClient to match dashboard.html
+      const SUPABASE_URL = "https://ylsbmxedhycjqaorjkvm.supabase.co";
+      const SUPABASE_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc2JteGVkaHljanFhb3Jqa3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTk5NTUsImV4cCI6MjA3NjM5NTk1NX0.W61xOww2neu6RA4yCJUob66p4OfYcgLSVw3m3yttz1E";
+      const supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY
+      );
+
+      let contacts = [];
+      let existingPhones = new Set();
+
+      // Show toast notification
+      function showToast(message, type = "success") {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.className = "toast show";
+        if (type === "error") toast.classList.add("error");
+        if (type === "warning") toast.classList.add("warning");
+        setTimeout(() => {
+          toast.className = "toast";
+        }, 3000);
+      }
+
+      // Update contact count badge
+      function updateContactCountBadge() {
+        const badge = document.getElementById("contactCountBadge");
+        badge.textContent = `${contacts.length} جهة اتصال`;
+      }
+
+      // ✅ Load contacts (from bookings + contact_list)
+      async function loadContacts() {
+        const { data: bookingData, error: bookingError } = await supabaseClient
+          .from("bookings")
+          .select("name, phone");
+
+        const { data: contactData, error: contactError } = await supabaseClient
+          .from("contact_list")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (bookingError || contactError) {
+          console.error("Error loading data:", bookingError || contactError);
+          return;
+        }
+
+        // Merge bookings + saved contacts, filter duplicates
+        const combined = [...(bookingData || []), ...(contactData || [])];
+        const unique = [];
+        existingPhones = new Set();
+
+        combined.forEach((c) => {
+          if (!c.phone || existingPhones.has(c.phone)) return;
+          existingPhones.add(c.phone);
+          unique.push({
+            name: c.name || "بدون اسم",
+            phone: c.phone,
+            created_at: c.created_at || new Date().toISOString(),
+          });
+        });
+
+        contacts = unique;
+        renderContacts();
+        updateContactCountBadge();
+      }
+
+      // ✅ Add new contact
+      async function addContact() {
+        const name = document.getElementById("contactName").value.trim();
+        const phone = document.getElementById("contactPhone").value.trim();
+        const successMsg = document.getElementById("successMsg");
+        const errorMsg = document.getElementById("errorMsg");
+
+        successMsg.style.display = "none";
+        errorMsg.style.display = "none";
+
+        if (!name || !phone) {
+          errorMsg.textContent = "⚠️ الرجاء إدخال الاسم ورقم الهاتف";
+          errorMsg.style.display = "block";
+          return;
+        }
+
+        const { error } = await supabaseClient
+          .from("contact_list")
+          .insert([{ name, phone }]);
+
+        if (error) {
+          console.error("Error inserting contact:", error);
+          errorMsg.textContent = "❌ حدث خطأ أثناء الإضافة";
+          errorMsg.style.display = "block";
+        } else {
+          successMsg.style.display = "block";
+          document.getElementById("contactName").value = "";
+          document.getElementById("contactPhone").value = "";
+          loadContacts();
+          setTimeout(() => (successMsg.style.display = "none"), 2000);
+        }
+      }
+
+      // ✅ Render table
+      function renderContacts() {
+        const tbody = document.querySelector("#contactTable tbody");
+        tbody.innerHTML = "";
+
+        if (!contacts.length) {
+          tbody.innerHTML = "<tr><td colspan='3'>لا توجد بيانات</td></tr>";
+          return;
+        }
+
+        contacts.forEach((c) => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${c.name}</td>
+            <td>${c.phone}</td>
+            <td>${new Date(c.created_at).toLocaleString("ar-EG")}</td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+
+      // ========== EXPORT TO EXCEL FUNCTION ==========
+      function exportToExcel() {
+        if (contacts.length === 0) {
+          showToast("لا توجد جهات اتصال للتصدير", "warning");
+          return;
+        }
+
+        try {
+          // Prepare data for export
+          const exportData = contacts.map((contact, index) => ({
+            "#": index + 1,
+            الاسم: contact.name,
+            "رقم الهاتف": contact.phone,
+            "تاريخ الإضافة": new Date(contact.created_at).toLocaleString(
+              "ar-EG"
+            ),
+          }));
+
+          // Create worksheet
+          const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+          // Set column widths
+          worksheet["!cols"] = [
+            { wch: 5 }, // #
+            { wch: 25 }, // Name
+            { wch: 18 }, // Phone
+            { wch: 22 }, // Date
+          ];
+
+          // Create workbook
+          const workbook = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(workbook, worksheet, "جهات الاتصال");
+
+          // Generate filename with current date
+          const today = new Date();
+          const dateStr = today.toISOString().split("T")[0];
+          const filename = `contacts_export_${dateStr}.xlsx`;
+
+          // Download file
+          XLSX.writeFile(workbook, filename);
+
+          showToast(`تم تصدير ${contacts.length} جهة اتصال بنجاح!`);
+        } catch (error) {
+          console.error("Error exporting to Excel:", error);
+          showToast("حدث خطأ أثناء التصدير", "error");
+        }
+      }
+
+      // ========== EXCEL IMPORT FUNCTIONS ==========
+
+      // Download Excel template
+      function downloadTemplate() {
+        const templateData = [
+          { name: "اسم العميل 1", phone: "0501234567" },
+          { name: "اسم العميل 2", phone: "0559876543" },
+          { name: "Customer Name 3", phone: "0512345678" },
+        ];
+
+        const worksheet = XLSX.utils.json_to_sheet(templateData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Contacts");
+
+        // Set column widths
+        worksheet["!cols"] = [{ wch: 25 }, { wch: 15 }];
+
+        XLSX.writeFile(workbook, "contacts_template.xlsx");
+        showToast("تم تحميل نموذج Excel بنجاح!");
+      }
+
+      // Handle file selection
+      function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const validExtensions = [".xlsx", ".xls", ".csv"];
+        const fileExtension = "." + file.name.split(".").pop().toLowerCase();
+
+        if (!validExtensions.includes(fileExtension)) {
+          showToast("يرجى اختيار ملف Excel صالح (.xlsx, .xls, .csv)", "error");
+          return;
+        }
+
+        processExcelFile(file);
+      }
+
+      // Process Excel file
+      async function processExcelFile(file) {
+        const importBtn = document.getElementById("importBtn");
+        const importStats = document.getElementById("importStats");
+
+        // Set loading state
+        importBtn.classList.add("loading");
+        importBtn.innerHTML =
+          '<i class="fa-solid fa-spinner"></i> جاري الاستيراد...';
+
+        try {
+          const data = await readExcelFile(file);
+
+          if (!data || data.length === 0) {
+            showToast("الملف فارغ أو لا يحتوي على بيانات صالحة", "error");
+            return;
+          }
+
+          // Import contacts
+          const result = await importContacts(data);
+
+          // Show stats
+          document.getElementById(
+            "totalRows"
+          ).textContent = `إجمالي الصفوف: ${result.total}`;
+          document.getElementById(
+            "successRows"
+          ).textContent = `تم استيرادها بنجاح: ${result.success}`;
+          document.getElementById(
+            "errorRows"
+          ).textContent = `فشل الاستيراد: ${result.failed}`;
+          document.getElementById(
+            "duplicateRows"
+          ).textContent = `مكررة (تم تخطيها): ${result.duplicates}`;
+          importStats.classList.add("show");
+
+          if (result.success > 0) {
+            showToast(`تم استيراد ${result.success} جهة اتصال بنجاح!`);
+            loadContacts();
+          } else if (result.duplicates === result.total) {
+            showToast("جميع جهات الاتصال موجودة مسبقاً", "warning");
+          } else {
+            showToast("لم يتم استيراد أي جهات اتصال", "error");
+          }
+        } catch (error) {
+          console.error("Error processing file:", error);
+          showToast("حدث خطأ أثناء معالجة الملف", "error");
+        } finally {
+          // Reset button state
+          importBtn.classList.remove("loading");
+          importBtn.innerHTML =
+            '<i class="fa-solid fa-file-import"></i> استيراد من Excel';
+          // Reset file input
+          document.getElementById("excelFileInput").value = "";
+        }
+      }
+
+      // Read Excel file
+      function readExcelFile(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+
+          reader.onload = function (e) {
+            try {
+              const data = new Uint8Array(e.target.result);
+              const workbook = XLSX.read(data, { type: "array" });
+
+              // Get first sheet
+              const firstSheetName = workbook.SheetNames[0];
+              const worksheet = workbook.Sheets[firstSheetName];
+
+              // Convert to JSON
+              const jsonData = XLSX.utils.sheet_to_json(worksheet, {
+                header: 1,
+              });
+
+              // Parse rows (skip header if exists)
+              const contacts = [];
+              const headers = jsonData[0] || [];
+
+              // Find name and phone column indices
+              let nameIndex = -1;
+              let phoneIndex = -1;
+
+              // Check if first row is header
+              const firstRowIsHeader = headers.some((h) => {
+                const headerLower = String(h).toLowerCase();
+                return (
+                  headerLower.includes("name") ||
+                  headerLower.includes("اسم") ||
+                  headerLower.includes("phone") ||
+                  headerLower.includes("هاتف") ||
+                  headerLower.includes("رقم")
+                );
+              });
+
+              if (firstRowIsHeader) {
+                // Find column indices from header
+                headers.forEach((header, index) => {
+                  const h = String(header).toLowerCase();
+                  if (h.includes("name") || h.includes("اسم")) {
+                    nameIndex = index;
+                  }
+                  if (
+                    h.includes("phone") ||
+                    h.includes("هاتف") ||
+                    h.includes("رقم") ||
+                    h.includes("number")
+                  ) {
+                    phoneIndex = index;
+                  }
+                });
+              }
+
+              // Default to first two columns if headers not found
+              if (nameIndex === -1) nameIndex = 0;
+              if (phoneIndex === -1) phoneIndex = 1;
+
+              // Start from row 1 if header exists, otherwise row 0
+              const startRow = firstRowIsHeader ? 1 : 0;
+
+              for (let i = startRow; i < jsonData.length; i++) {
+                const row = jsonData[i];
+                if (!row || row.length === 0) continue;
+
+                const name = row[nameIndex]
+                  ? String(row[nameIndex]).trim()
+                  : "";
+                const phone = row[phoneIndex]
+                  ? String(row[phoneIndex]).trim()
+                  : "";
+
+                if (name && phone) {
+                  contacts.push({ name, phone });
+                }
+              }
+
+              resolve(contacts);
+            } catch (error) {
+              reject(error);
+            }
+          };
+
+          reader.onerror = function (error) {
+            reject(error);
+          };
+
+          reader.readAsArrayBuffer(file);
+        });
+      }
+
+      // Import contacts to database
+      async function importContacts(contactsToImport) {
+        const result = {
+          total: contactsToImport.length,
+          success: 0,
+          failed: 0,
+          duplicates: 0,
+        };
+
+        // Reload existing phones to get latest data
+        await loadContacts();
+
+        const newContacts = [];
+
+        for (const contact of contactsToImport) {
+          // Check for duplicates
+          if (existingPhones.has(contact.phone)) {
+            result.duplicates++;
+            continue;
+          }
+
+          newContacts.push({
+            name: contact.name,
+            phone: contact.phone,
+          });
+
+          // Add to existing set to prevent duplicates within the same import
+          existingPhones.add(contact.phone);
+        }
+
+        if (newContacts.length === 0) {
+          return result;
+        }
+
+        // Batch insert (in chunks of 50 to avoid issues)
+        const chunkSize = 50;
+        for (let i = 0; i < newContacts.length; i += chunkSize) {
+          const chunk = newContacts.slice(i, i + chunkSize);
+
+          const { error } = await supabaseClient
+            .from("contact_list")
+            .insert(chunk);
+
+          if (error) {
+            console.error("Error inserting chunk:", error);
+            result.failed += chunk.length;
+          } else {
+            result.success += chunk.length;
+          }
+        }
+
+        return result;
+      }
+
+      // ========== DRAG AND DROP ==========
+      const importSection = document.getElementById("importSection");
+
+      importSection.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        importSection.classList.add("dragover");
+      });
+
+      importSection.addEventListener("dragleave", (e) => {
+        e.preventDefault();
+        importSection.classList.remove("dragover");
+      });
+
+      importSection.addEventListener("drop", (e) => {
+        e.preventDefault();
+        importSection.classList.remove("dragover");
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          const file = files[0];
+          const validExtensions = [".xlsx", ".xls", ".csv"];
+          const fileExtension = "." + file.name.split(".").pop().toLowerCase();
+
+          if (validExtensions.includes(fileExtension)) {
+            processExcelFile(file);
+          } else {
+            showToast(
+              "يرجى اختيار ملف Excel صالح (.xlsx, .xls, .csv)",
+              "error"
+            );
+          }
+        }
+      });
+
+      // ✅ Theme toggle
+      const themeToggle = document.getElementById("themeToggle");
+      themeToggle.addEventListener("click", () => {
+        document.body.classList.toggle("dark");
+        const icon = themeToggle.querySelector("i");
+        if (document.body.classList.contains("dark")) {
+          icon.classList.replace("fa-moon", "fa-sun");
+          localStorage.setItem("clinic_theme", "dark");
+        } else {
+          icon.classList.replace("fa-sun", "fa-moon");
+          localStorage.setItem("clinic_theme", "light");
+        }
+      });
+      if (localStorage.getItem("clinic_theme") === "dark") {
+        document.body.classList.add("dark");
+        themeToggle.querySelector("i").classList.replace("fa-moon", "fa-sun");
+      }
+
+      // ✅ Sidebar toggle
+      const menuToggle = document.getElementById("menuToggle");
+      const sidebar = document.getElementById("sidebar");
+      menuToggle.addEventListener("click", () =>
+        sidebar.classList.toggle("active")
+      );
+
+      // ✅ Add contact listener
+      document
+        .getElementById("addContactBtn")
+        .addEventListener("click", addContact);
+
+      // ✅ Initial load + auto refresh
+      loadContacts();
+      setInterval(loadContacts, 20000);
+    </script>
+  </body>
+</html>
