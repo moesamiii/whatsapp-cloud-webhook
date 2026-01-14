@@ -1,79 +1,83 @@
 import express from "express";
 import axios from "axios";
 
-// ==============================
-// 📦 IMPORT MODULED FILES
-// ==============================
-import { registerWebhookRoutes } from "./webhookHandler.js";
-import { webhookCandy } from "./webhookCandy.js";
-
-// ==============================
-// 🚀 APP SETUP
-// ==============================
 const app = express();
 app.use(express.json());
 
-// ==============================
-// ✅ ROOT ROUTE
-// ==============================
+// ✅ ROOT ROUTE (PUT IT HERE)
 app.get("/", (req, res) => {
   res.send("WhatsApp Webhook is running 🚀");
 });
 
 // ==============================
-// 🍬 WEBSITE / SUPABASE WEBHOOK
+// 1️⃣ VERIFY WEBHOOK (Meta step)
 // ==============================
-app.options("/webhook-candy", (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  return res.status(200).end();
-});
+app.get("/webhook", (req, res) => {
+  const VERIFY_TOKEN = process.env.VERIFY_TOKEN;
 
-app.post("/webhook-candy", webhookCandy);
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
 
-// ==============================
-// 📲 WHATSAPP WEBHOOK
-// - GET  /webhook → Meta verification
-// - POST /webhook → Messages
-// ==============================
-registerWebhookRoutes(app, process.env.VERIFY_TOKEN);
+  if (mode === "subscribe" && token === VERIFY_TOKEN) {
+    return res.status(200).send(challenge);
+  }
 
-// ==============================
-// 🧪 HEALTH CHECK (OPTIONAL)
-// ==============================
-app.get("/health", (req, res) => {
-  res.status(200).json({
-    status: "ok",
-    timestamp: new Date().toISOString(),
-  });
+  return res.sendStatus(403);
 });
 
 // ==============================
-// ❌ 404 HANDLER
+// 2️⃣ RECEIVE MESSAGES
 // ==============================
-app.use((req, res) => {
-  res.status(404).json({
-    error: "Route not found",
-    path: req.originalUrl,
-  });
+app.post("/webhook", async (req, res) => {
+  try {
+    const entry = req.body.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const message = changes?.value?.messages?.[0];
+
+    if (!message) {
+      return res.sendStatus(200);
+    }
+
+    const from = message.from;
+    const text = message.text?.body?.toLowerCase();
+
+    console.log("Incoming message:", text);
+
+    if (text === "hello") {
+      await sendMessage(from, "Hi 👋 How can I help you?");
+    }
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error(error);
+    res.sendStatus(200);
+  }
 });
 
 // ==============================
-// 🛑 GLOBAL ERROR HANDLER
+// 3️⃣ SEND MESSAGE FUNCTION
 // ==============================
-app.use((err, req, res, next) => {
-  console.error("❌ Unhandled error:", err);
-  res.status(500).json({
-    error: "Internal server error",
-  });
-});
+async function sendMessage(to, text) {
+  const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
+  const TOKEN = process.env.WHATSAPP_TOKEN;
 
-// ==============================
-// 🔊 START SERVER
-// ==============================
-const PORT = process.env.PORT || 3000;
+  await axios.post(
+    `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`,
+    {
+      messaging_product: "whatsapp",
+      to,
+      text: { body: text },
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+}
 
-app.listen(PORT, () => {
-  console.log(`✅ WhatsApp Webhook server running on port ${PORT}`);
+app.listen(3000, () => {
+  console.log("Webhook running on port 3000");
 });
