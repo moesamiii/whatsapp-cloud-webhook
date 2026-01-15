@@ -768,7 +768,7 @@
           const row = document.createElement("tr");
           row.innerHTML = `
             <td>${c.name}</td>
-            <td>${c.phone}</td>
+            <td dir="ltr" style="text-align: center;">${c.phone}</td>
             <td>${new Date(c.created_at).toLocaleString("ar-EG")}</td>
           `;
           tbody.appendChild(row);
