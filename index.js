@@ -1,6 +1,9 @@
 import express from "express";
 import axios from "axios";
 
+// ✅ IMPORT AI (already exists in your project)
+import { askAI } from "./aiHelper.js";
+
 const app = express();
 app.use(express.json());
 
@@ -42,17 +45,23 @@ app.post("/webhook", async (req, res) => {
     }
 
     const from = message.from;
-    const text = message.text?.body?.toLowerCase();
+    const text = message.text?.body;
 
     console.log("📩 Incoming WhatsApp message:", text);
 
-    if (text === "hello") {
-      await sendMessage(from, "Hi 👋 How can I help you?");
+    // 🔒 Ignore empty or non-text messages
+    if (!text) {
+      return res.sendStatus(200);
     }
+
+    // 🤖 AI RESPONSE (Arabic / English supported)
+    const aiReply = await askAI(text);
+
+    await sendMessage(from, aiReply);
 
     return res.sendStatus(200);
   } catch (error) {
-    console.error("❌ WhatsApp error:", error);
+    console.error("❌ WhatsApp webhook error:", error.message);
     return res.sendStatus(200);
   }
 });
@@ -107,30 +116,13 @@ app.post("/webhook-candy", async (req, res) => {
 📞 الهاتف: ${phone}
 💊 الخدمة: ${service}`;
 
-    const response = await fetch(
-      "https://whatsapp-test-rosy.vercel.app/api/sendWhatsApp",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: "Smile Clinic",
-          phone: "962781685210",
-          service: "Booking",
-          appointment: messageText,
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    console.log("✅ WhatsApp sent from Candy:", data);
+    await sendMessage("962781685210", messageText);
 
     return res.status(200).json({
       success: true,
-      whatsappResult: data,
     });
   } catch (err) {
-    console.error("❌ Candy webhook error:", err);
+    console.error("❌ Candy webhook error:", err.message);
     return res.status(500).json({ error: err.message });
   }
 });
