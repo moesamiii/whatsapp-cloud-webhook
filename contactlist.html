@@ -40,6 +40,12 @@
         border-color: #555;
       }
 
+      body.dark select {
+        background: #333;
+        color: #fff;
+        border-color: #555;
+      }
+
       .add-contact-form {
         display: flex;
         flex-wrap: wrap;
@@ -50,6 +56,13 @@
 
       .add-contact-form input {
         flex: 1 1 200px;
+      }
+
+      .add-contact-form select {
+        flex: 1 1 180px;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
       }
 
       .add-contact-form button {
@@ -91,6 +104,318 @@
       body.dark th {
         background: #222;
       }
+
+      /* ========== NEW FEATURE: GROUPS SECTION STYLES ========== */
+      .groups-section {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        border: 2px solid #f59e0b;
+        border-radius: 12px;
+        padding: 20px;
+        margin-bottom: 20px;
+      }
+
+      body.dark .groups-section {
+        background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+        border-color: #fbbf24;
+      }
+
+      .groups-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .groups-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #92400e;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      body.dark .groups-title {
+        color: #fcd34d;
+      }
+
+      .create-group-btn {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+      }
+
+      .create-group-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+      }
+
+      .groups-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .group-tag {
+        background: white;
+        border: 2px solid #fbbf24;
+        border-radius: 25px;
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      body.dark .group-tag {
+        background: #451a03;
+        border-color: #fbbf24;
+        color: #fef3c7;
+      }
+
+      .group-tag:hover {
+        background: #fef3c7;
+        transform: scale(1.02);
+      }
+
+      body.dark .group-tag:hover {
+        background: #78350f;
+      }
+
+      .group-tag.active {
+        background: #f59e0b;
+        color: white;
+        border-color: #d97706;
+      }
+
+      .group-tag .group-count {
+        background: rgba(0, 0, 0, 0.15);
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+      }
+
+      .group-tag .delete-group {
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 18px;
+        height: 18px;
+        font-size: 10px;
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        margin: 0;
+      }
+
+      .group-tag:hover .delete-group {
+        display: flex;
+      }
+
+      /* Modal styles */
+      .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+      }
+
+      .modal-overlay.show {
+        display: flex;
+      }
+
+      .modal-content {
+        background: white;
+        border-radius: 16px;
+        padding: 30px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      }
+
+      body.dark .modal-content {
+        background: #1f2937;
+        color: #f3f4f6;
+      }
+
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #e5e7eb;
+      }
+
+      body.dark .modal-header {
+        border-color: #374151;
+      }
+
+      .modal-header h3 {
+        margin: 0;
+        font-size: 20px;
+        color: #f59e0b;
+      }
+
+      .modal-close {
+        background: #ef4444;
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .modal-body {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+      }
+
+      .modal-body label {
+        font-weight: 600;
+        font-size: 14px;
+        margin-bottom: 5px;
+        display: block;
+      }
+
+      .modal-body input,
+      .modal-body select {
+        width: 100%;
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        font-size: 14px;
+        box-sizing: border-box;
+      }
+
+      body.dark .modal-body input,
+      body.dark .modal-body select {
+        background: #374151;
+        border-color: #4b5563;
+        color: #f3f4f6;
+      }
+
+      .filter-options {
+        background: #f9fafb;
+        border-radius: 10px;
+        padding: 15px;
+      }
+
+      body.dark .filter-options {
+        background: #374151;
+      }
+
+      .filter-row {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        align-items: center;
+      }
+
+      .filter-row:last-child {
+        margin-bottom: 0;
+      }
+
+      .filter-row label {
+        min-width: 80px;
+        margin-bottom: 0;
+      }
+
+      .filter-row select {
+        flex: 1;
+      }
+
+      .modal-footer {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 20px;
+        padding-top: 15px;
+        border-top: 2px solid #e5e7eb;
+      }
+
+      body.dark .modal-footer {
+        border-color: #374151;
+      }
+
+      .modal-btn {
+        padding: 12px 24px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .modal-btn.primary {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        border: none;
+      }
+
+      .modal-btn.primary:hover {
+        transform: translateY(-2px);
+      }
+
+      .modal-btn.secondary {
+        background: #e5e7eb;
+        color: #374151;
+        border: none;
+      }
+
+      body.dark .modal-btn.secondary {
+        background: #4b5563;
+        color: #f3f4f6;
+      }
+
+      /* Service badge */
+      .service-badge {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+        color: white;
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+        display: inline-block;
+      }
+
+      .service-badge.empty {
+        background: #9ca3af;
+      }
+
+      /* ========== END NEW FEATURE: GROUPS SECTION ========== */
 
       /* ========== EXPORT SECTION STYLES ========== */
       .export-section {
@@ -461,6 +786,27 @@
           <div class="table-card">
             <h3>إدارة قائمة التواصل</h3>
 
+            <!-- ✅ NEW FEATURE: CONTACT GROUPS SECTION -->
+            <div class="groups-section">
+              <div class="groups-header">
+                <div class="groups-title">
+                  <i class="fa-solid fa-layer-group"></i>
+                  مجموعات جهات الاتصال
+                </div>
+                <button
+                  class="create-group-btn"
+                  onclick="openCreateGroupModal()"
+                >
+                  <i class="fa-solid fa-plus"></i>
+                  إنشاء مجموعة جديدة
+                </button>
+              </div>
+              <div class="groups-list" id="groupsList">
+                <!-- Groups will be rendered here dynamically -->
+              </div>
+            </div>
+            <!-- ✅ END CONTACT GROUPS SECTION -->
+
             <!-- ✅ EXPORT TO EXCEL SECTION -->
             <div class="export-section">
               <div class="export-info">
@@ -469,7 +815,7 @@
                 </div>
                 <div class="export-text">
                   <h4>تصدير جهات الاتصال</h4>
-                  <p>قم بتحميل جميع جهات الاتصال كملف Excel</p>
+                  <p>قم بتحميل جميع جهات الاتصال كملف Excel (مع الخدمة)</p>
                 </div>
                 <span class="contact-count-badge" id="contactCountBadge"
                   >0 جهة اتصال</span
@@ -482,7 +828,7 @@
             </div>
             <!-- ✅ END EXPORT SECTION -->
 
-            <!-- ✅ IMPORT FROM EXCEL SECTION -->
+            <!-- ✅ IMPORT FROM EXCEL SECTION - UPDATED with service -->
             <div class="import-section" id="importSection">
               <div class="import-title">
                 <i class="fa-solid fa-file-excel"></i>
@@ -491,8 +837,10 @@
               <div class="import-description">
                 اسحب ملف Excel هنا أو اضغط على زر الاستيراد<br />
                 <small
-                  >يجب أن يحتوي الملف على عمودين: الاسم (name) ورقم الهاتف
-                  (phone)</small
+                  >يجب أن يحتوي الملف على: الاسم (name)، رقم الهاتف (phone)،
+                  <strong style="color: #3b82f6"
+                    >والخدمة (service) - اختياري</strong
+                  ></small
                 ><br />
                 <small style="color: #f59e0b"
                   >✨ يتم تصحيح رمز الدولة تلقائياً إذا كان في نهاية
@@ -528,16 +876,30 @@
                 <p class="info" id="totalRows">إجمالي الصفوف: 0</p>
                 <p class="success" id="successRows">تم استيرادها بنجاح: 0</p>
                 <p class="fixed" id="fixedRows">تم تصحيح رمز الدولة: 0</p>
+                <p class="info" id="serviceRows">مع خدمة: 0</p>
                 <p class="error" id="errorRows">فشل الاستيراد: 0</p>
                 <p class="info" id="duplicateRows">مكررة (تم تخطيها): 0</p>
               </div>
             </div>
             <!-- ✅ END IMPORT SECTION -->
 
-            <!-- ✅ Add new contact form -->
+            <!-- ✅ Add new contact form - UPDATED with service dropdown -->
             <div class="add-contact-form">
               <input type="text" id="contactName" placeholder="الاسم" />
               <input type="text" id="contactPhone" placeholder="رقم الهاتف" />
+              <select id="contactService">
+                <option value="">اختر الخدمة (اختياري)</option>
+                <option value="تنظيف الأسنان">تنظيف الأسنان</option>
+                <option value="تبييض الأسنان">تبييض الأسنان</option>
+                <option value="حشو الأسنان">حشو الأسنان</option>
+                <option value="علاج الجذور">علاج الجذور</option>
+                <option value="تقويم الأسنان">تقويم الأسنان</option>
+                <option value="خلع الأسنان">خلع الأسنان</option>
+                <option value="زراعة الأسنان">زراعة الأسنان</option>
+                <option value="ابتسامة هوليود">ابتسامة هوليود</option>
+                <option value="فحص عام">فحص عام</option>
+                <option value="أخرى">أخرى</option>
+              </select>
               <button id="addContactBtn">
                 <i class="fa-solid fa-plus"></i> إضافة جهة اتصال
               </button>
@@ -547,11 +909,13 @@
             </p>
             <p class="error-msg" id="errorMsg">❌ حدث خطأ أثناء الإضافة</p>
 
+            <!-- UPDATED TABLE with service column -->
             <table id="contactTable">
               <thead>
                 <tr>
                   <th>الاسم</th>
                   <th>الهاتف</th>
+                  <th>الخدمة</th>
                   <th>تاريخ الإضافة</th>
                 </tr>
               </thead>
@@ -563,6 +927,72 @@
         <footer>© 2025 Smile Clinic</footer>
       </main>
     </div>
+
+    <!-- ✅ NEW FEATURE: CREATE GROUP MODAL -->
+    <div class="modal-overlay" id="createGroupModal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3><i class="fa-solid fa-layer-group"></i> إنشاء مجموعة جديدة</h3>
+          <button class="modal-close" onclick="closeCreateGroupModal()">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <div>
+            <label>اسم المجموعة</label>
+            <input
+              type="text"
+              id="groupName"
+              placeholder="مثال: عملاء تنظيف الأسنان"
+            />
+          </div>
+
+          <div class="filter-options">
+            <label style="margin-bottom: 10px; display: block"
+              >فلترة جهات الاتصال حسب الخدمة</label
+            >
+
+            <div class="filter-row">
+              <label>الخدمة:</label>
+              <select id="groupServiceFilter">
+                <option value="all">جميع الخدمات</option>
+                <option value="تنظيف الأسنان">تنظيف الأسنان</option>
+                <option value="تبييض الأسنان">تبييض الأسنان</option>
+                <option value="حشو الأسنان">حشو الأسنان</option>
+                <option value="علاج الجذور">علاج الجذور</option>
+                <option value="تقويم الأسنان">تقويم الأسنان</option>
+                <option value="خلع الأسنان">خلع الأسنان</option>
+                <option value="زراعة الأسنان">زراعة الأسنان</option>
+                <option value="ابتسامة هوليود">ابتسامة هوليود</option>
+                <option value="فحص عام">فحص عام</option>
+                <option value="no_service">بدون خدمة</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label>لون المجموعة</label>
+            <select id="groupColor">
+              <option value="#f59e0b">🟡 أصفر</option>
+              <option value="#3b82f6">🔵 أزرق</option>
+              <option value="#22c55e">🟢 أخضر</option>
+              <option value="#ef4444">🔴 أحمر</option>
+              <option value="#8b5cf6">🟣 بنفسجي</option>
+              <option value="#ec4899">💗 وردي</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-btn secondary" onclick="closeCreateGroupModal()">
+            إلغاء
+          </button>
+          <button class="modal-btn primary" onclick="createGroup()">
+            <i class="fa-solid fa-check"></i> إنشاء المجموعة
+          </button>
+        </div>
+      </div>
+    </div>
+    <!-- ✅ END CREATE GROUP MODAL -->
 
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
@@ -579,6 +1009,10 @@
 
       let contacts = [];
       let existingPhones = new Set();
+
+      // ✅ NEW: Variables for groups feature
+      let contactGroups = [];
+      let currentGroup = "all";
 
       // ========== ✨ NEW: PHONE NUMBER COUNTRY CODE FIX FUNCTION ========== //
       /**
@@ -675,11 +1109,139 @@
         badge.textContent = `${contacts.length} جهة اتصال`;
       }
 
-      // ✅ Load contacts (from bookings + contact_list)
+      // ========== ✅ NEW FEATURE: GROUPS MANAGEMENT ========== //
+
+      // Load groups from localStorage
+      function loadGroups() {
+        const savedGroups = localStorage.getItem("contactGroups");
+        contactGroups = savedGroups ? JSON.parse(savedGroups) : [];
+        renderGroups();
+      }
+
+      // Save groups to localStorage
+      function saveGroups() {
+        localStorage.setItem("contactGroups", JSON.stringify(contactGroups));
+      }
+
+      // Get contact count for a specific group based on service filter
+      function getGroupContactCount(group) {
+        return contacts.filter((c) => {
+          if (group.serviceFilter === "all") return true;
+          if (group.serviceFilter === "no_service") {
+            return !c.service || c.service === "";
+          }
+          return c.service === group.serviceFilter;
+        }).length;
+      }
+
+      // Render groups in the UI
+      function renderGroups() {
+        const groupsList = document.getElementById("groupsList");
+
+        // Start with "All" group
+        let html = `
+          <div class="group-tag ${
+            currentGroup === "all" ? "active" : ""
+          }" onclick="selectGroup('all')">
+            <i class="fa-solid fa-users"></i>
+            الكل
+            <span class="group-count">${contacts.length}</span>
+          </div>
+        `;
+
+        // Add custom groups
+        contactGroups.forEach((group, index) => {
+          const count = getGroupContactCount(group);
+          html += `
+            <div class="group-tag ${currentGroup === group.id ? "active" : ""}" 
+                 style="border-color: ${group.color};" 
+                 onclick="selectGroup('${group.id}')">
+              <i class="fa-solid fa-tag" style="color: ${group.color};"></i>
+              ${group.name}
+              <span class="group-count">${count}</span>
+              <button class="delete-group" onclick="event.stopPropagation(); deleteGroup(${index})">×</button>
+            </div>
+          `;
+        });
+
+        groupsList.innerHTML = html;
+      }
+
+      // Select a group and filter contacts
+      function selectGroup(groupId) {
+        currentGroup = groupId;
+        renderGroups();
+        renderContacts();
+      }
+
+      // Open create group modal
+      function openCreateGroupModal() {
+        document.getElementById("createGroupModal").classList.add("show");
+      }
+
+      // Close create group modal
+      function closeCreateGroupModal() {
+        document.getElementById("createGroupModal").classList.remove("show");
+        // Reset form
+        document.getElementById("groupName").value = "";
+        document.getElementById("groupServiceFilter").value = "all";
+        document.getElementById("groupColor").value = "#f59e0b";
+      }
+
+      // Create a new group
+      function createGroup() {
+        const name = document.getElementById("groupName").value.trim();
+        const serviceFilter =
+          document.getElementById("groupServiceFilter").value;
+        const color = document.getElementById("groupColor").value;
+
+        if (!name) {
+          showToast("يرجى إدخال اسم المجموعة", "error");
+          return;
+        }
+
+        const newGroup = {
+          id: "group_" + Date.now(),
+          name: name,
+          serviceFilter: serviceFilter,
+          color: color,
+          createdAt: new Date().toISOString(),
+        };
+
+        contactGroups.push(newGroup);
+        saveGroups();
+        renderGroups();
+        closeCreateGroupModal();
+
+        showToast(`تم إنشاء مجموعة "${name}" بنجاح!`);
+      }
+
+      // Delete a group
+      function deleteGroup(index) {
+        if (confirm("هل أنت متأكد من حذف هذه المجموعة؟")) {
+          const groupName = contactGroups[index].name;
+          const groupId = contactGroups[index].id;
+          contactGroups.splice(index, 1);
+          saveGroups();
+
+          // If we deleted the currently selected group, go back to "all"
+          if (currentGroup === groupId) {
+            currentGroup = "all";
+          }
+
+          renderGroups();
+          renderContacts();
+          showToast(`تم حذف مجموعة "${groupName}"`);
+        }
+      }
+
+      // ========== END GROUPS MANAGEMENT ========== //
+
+      // ✅ Load contacts (from bookings + contact_list) - UPDATED to include service
       async function loadContacts() {
         const { data: bookingData, error: bookingError } = await supabaseClient
           .from("bookings")
-          .select("name, phone");
+          .select("name, phone, service");
 
         const { data: contactData, error: contactError } = await supabaseClient
           .from("contact_list")
@@ -702,6 +1264,7 @@
           unique.push({
             name: c.name || "بدون اسم",
             phone: c.phone,
+            service: c.service || "",
             created_at: c.created_at || new Date().toISOString(),
           });
         });
@@ -709,12 +1272,14 @@
         contacts = unique;
         renderContacts();
         updateContactCountBadge();
+        renderGroups(); // Update groups count
       }
 
-      // ✅ Add new contact
+      // ✅ Add new contact - UPDATED to include service
       async function addContact() {
         const name = document.getElementById("contactName").value.trim();
         let phone = document.getElementById("contactPhone").value.trim();
+        const service = document.getElementById("contactService").value;
         const successMsg = document.getElementById("successMsg");
         const errorMsg = document.getElementById("errorMsg");
 
@@ -733,7 +1298,7 @@
 
         const { error } = await supabaseClient
           .from("contact_list")
-          .insert([{ name, phone }]);
+          .insert([{ name, phone, service }]);
 
         if (error) {
           console.error("Error inserting contact:", error);
@@ -749,33 +1314,55 @@
           successMsg.style.display = "block";
           document.getElementById("contactName").value = "";
           document.getElementById("contactPhone").value = "";
+          document.getElementById("contactService").value = "";
           loadContacts();
           setTimeout(() => (successMsg.style.display = "none"), 2000);
         }
       }
 
-      // ✅ Render table
+      // ✅ Render table - UPDATED with service column and group filtering
       function renderContacts() {
         const tbody = document.querySelector("#contactTable tbody");
         tbody.innerHTML = "";
 
-        if (!contacts.length) {
-          tbody.innerHTML = "<tr><td colspan='3'>لا توجد بيانات</td></tr>";
+        // Filter contacts based on current group
+        let filteredContacts = contacts;
+
+        if (currentGroup !== "all") {
+          const group = contactGroups.find((g) => g.id === currentGroup);
+          if (group) {
+            filteredContacts = contacts.filter((c) => {
+              if (group.serviceFilter === "all") return true;
+              if (group.serviceFilter === "no_service") {
+                return !c.service || c.service === "";
+              }
+              return c.service === group.serviceFilter;
+            });
+          }
+        }
+
+        if (!filteredContacts.length) {
+          tbody.innerHTML = "<tr><td colspan='4'>لا توجد بيانات</td></tr>";
           return;
         }
 
-        contacts.forEach((c) => {
+        filteredContacts.forEach((c) => {
           const row = document.createElement("tr");
           row.innerHTML = `
             <td>${c.name}</td>
             <td dir="ltr" style="text-align: center;">${c.phone}</td>
+            <td>${
+              c.service
+                ? `<span class="service-badge">${c.service}</span>`
+                : `<span class="service-badge empty">-</span>`
+            }</td>
             <td>${new Date(c.created_at).toLocaleString("ar-EG")}</td>
           `;
           tbody.appendChild(row);
         });
       }
 
-      // ========== EXPORT TO EXCEL FUNCTION ==========
+      // ========== EXPORT TO EXCEL FUNCTION - UPDATED with service column ==========
       function exportToExcel() {
         if (contacts.length === 0) {
           showToast("لا توجد جهات اتصال للتصدير", "warning");
@@ -783,11 +1370,12 @@
         }
 
         try {
-          // Prepare data for export
+          // Prepare data for export with service
           const exportData = contacts.map((contact, index) => ({
             "#": index + 1,
             الاسم: contact.name,
             "رقم الهاتف": contact.phone,
+            الخدمة: contact.service || "",
             "تاريخ الإضافة": new Date(contact.created_at).toLocaleString(
               "ar-EG"
             ),
@@ -801,6 +1389,7 @@
             { wch: 5 }, // #
             { wch: 25 }, // Name
             { wch: 18 }, // Phone
+            { wch: 20 }, // Service
             { wch: 22 }, // Date
           ];
 
@@ -825,12 +1414,20 @@
 
       // ========== EXCEL IMPORT FUNCTIONS ==========
 
-      // Download Excel template
+      // Download Excel template - UPDATED with service column
       function downloadTemplate() {
         const templateData = [
-          { name: "اسم العميل 1", phone: "+966501234567" },
-          { name: "اسم العميل 2", phone: "+962791234567" },
-          { name: "Customer Name 3", phone: "+971501234567" },
+          {
+            name: "اسم العميل 1",
+            phone: "+966501234567",
+            service: "تنظيف الأسنان",
+          },
+          {
+            name: "اسم العميل 2",
+            phone: "+962791234567",
+            service: "تبييض الأسنان",
+          },
+          { name: "Customer Name 3", phone: "+971501234567", service: "" },
         ];
 
         const worksheet = XLSX.utils.json_to_sheet(templateData);
@@ -838,7 +1435,7 @@
         XLSX.utils.book_append_sheet(workbook, worksheet, "Contacts");
 
         // Set column widths
-        worksheet["!cols"] = [{ wch: 25 }, { wch: 15 }];
+        worksheet["!cols"] = [{ wch: 25 }, { wch: 18 }, { wch: 20 }];
 
         XLSX.writeFile(workbook, "contacts_template.xlsx");
         showToast("تم تحميل نموذج Excel بنجاح!");
@@ -892,6 +1489,9 @@
             "fixedRows"
           ).textContent = `تم تصحيح رمز الدولة: ${result.fixed}`;
           document.getElementById(
+            "serviceRows"
+          ).textContent = `مع خدمة: ${result.withService}`;
+          document.getElementById(
             "errorRows"
           ).textContent = `فشل الاستيراد: ${result.failed}`;
           document.getElementById(
@@ -903,6 +1503,9 @@
             let message = `تم استيراد ${result.success} جهة اتصال بنجاح!`;
             if (result.fixed > 0) {
               message += ` (تم تصحيح ${result.fixed} رقم)`;
+            }
+            if (result.withService > 0) {
+              message += ` (${result.withService} مع خدمة)`;
             }
             showToast(message);
             loadContacts();
@@ -924,7 +1527,7 @@
         }
       }
 
-      // Read Excel file
+      // Read Excel file - UPDATED to include service column
       function readExcelFile(file) {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
@@ -947,9 +1550,10 @@
               const contacts = [];
               const headers = jsonData[0] || [];
 
-              // Find name and phone column indices
+              // Find name, phone, and service column indices
               let nameIndex = -1;
               let phoneIndex = -1;
+              let serviceIndex = -1;
 
               // Check if first row is header
               const firstRowIsHeader = headers.some((h) => {
@@ -959,7 +1563,9 @@
                   headerLower.includes("اسم") ||
                   headerLower.includes("phone") ||
                   headerLower.includes("هاتف") ||
-                  headerLower.includes("رقم")
+                  headerLower.includes("رقم") ||
+                  headerLower.includes("service") ||
+                  headerLower.includes("خدمة")
                 );
               });
 
@@ -978,12 +1584,16 @@
                   ) {
                     phoneIndex = index;
                   }
+                  if (h.includes("service") || h.includes("خدمة")) {
+                    serviceIndex = index;
+                  }
                 });
               }
 
               // Default to first two columns if headers not found
               if (nameIndex === -1) nameIndex = 0;
               if (phoneIndex === -1) phoneIndex = 1;
+              // serviceIndex remains -1 if not found, meaning no service column
 
               // Start from row 1 if header exists, otherwise row 0
               const startRow = firstRowIsHeader ? 1 : 0;
@@ -998,9 +1608,13 @@
                 const phone = row[phoneIndex]
                   ? String(row[phoneIndex]).trim()
                   : "";
+                const service =
+                  serviceIndex !== -1 && row[serviceIndex]
+                    ? String(row[serviceIndex]).trim()
+                    : "";
 
                 if (name && phone) {
-                  contacts.push({ name, phone });
+                  contacts.push({ name, phone, service });
                 }
               }
 
@@ -1018,14 +1632,15 @@
         });
       }
 
-      // Import contacts to database
+      // Import contacts to database - UPDATED to include service
       async function importContacts(contactsToImport) {
         const result = {
           total: contactsToImport.length,
           success: 0,
           failed: 0,
           duplicates: 0,
-          fixed: 0, // ✨ NEW: Track fixed phone numbers
+          fixed: 0,
+          withService: 0, // ✅ NEW: Track contacts with service
         };
 
         // Reload existing phones to get latest data
@@ -1042,6 +1657,11 @@
             result.fixed++;
           }
 
+          // ✅ Count contacts with service
+          if (contact.service && contact.service.trim() !== "") {
+            result.withService++;
+          }
+
           // Check for duplicates (using fixed phone)
           if (existingPhones.has(fixedPhone)) {
             result.duplicates++;
@@ -1050,7 +1670,8 @@
 
           newContacts.push({
             name: contact.name,
-            phone: fixedPhone, // Use fixed phone number
+            phone: fixedPhone,
+            service: contact.service || "", // Include service
           });
 
           // Add to existing set to prevent duplicates within the same import
@@ -1146,6 +1767,7 @@
         .addEventListener("click", addContact);
 
       // ✅ Initial load + auto refresh
+      loadGroups(); // Load groups first
       loadContacts();
       setInterval(loadContacts, 20000);
     </script>
