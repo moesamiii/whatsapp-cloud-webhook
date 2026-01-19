@@ -3,11 +3,15 @@ import axios from "axios";
 import Groq from "groq-sdk";
 import { createClient } from "@supabase/supabase-js";
 
+// ✅ DOCTORS FEATURE
+import { isDoctorsRequest } from "./detectionHelpers.js";
+import { sendDoctorsImages } from "./mediaService.js";
+
 const app = express();
 app.use(express.json());
 
 // ==============================
-// 🔑 SUPABASE SETUP
+// 🔑 SUPABASE
 // ==============================
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -47,8 +51,8 @@ async function askAI(userMessage) {
 
     const systemPrompt =
       lang === "ar"
-        ? `أنت موظف خدمة عملاء في عيادة ابتسامة. لا تبدأ الحجز إلا إذا طلب المستخدم ذلك صراحة.`
-        : `You are a clinic assistant. Do not start booking unless user asks explicitly.`;
+        ? `أنت موظف خدمة عملاء في عيادة ابتسامة. أجب فقط ولا تبدأ الحجز إلا إذا طُلب منك صراحة.`
+        : `You are a clinic assistant. Answer normally and do not start booking unless asked.`;
 
     const completion = await client.chat.completions.create({
       model: "llama-3.3-70b-versatile",
@@ -56,7 +60,7 @@ async function askAI(userMessage) {
         { role: "system", content: systemPrompt },
         { role: "user", content: userMessage },
       ],
-      temperature: 0.7,
+      temperature: 0.6,
       max_completion_tokens: 300,
     });
 
@@ -137,7 +141,6 @@ async function sendServiceList(to) {
 // ==============================
 const tempBookings = {};
 
-// ✅ booking intent ONLY
 function isBookingRequest(text) {
   return /(حجز|موعد|احجز|book|appointment|reserve)/i.test(text);
 }
@@ -151,13 +154,13 @@ app.post("/webhook", async (req, res) => {
 
   const from = message.from;
 
-  // ---------------- BUTTONS ----------------
+  // ================= BUTTONS =================
   if (message.type === "interactive") {
     const id =
       message.interactive?.list_reply?.id ||
       message.interactive?.button_reply?.id;
 
-    if (id.startsWith("slot_")) {
+    if (id?.startsWith("slot_")) {
       tempBookings[from] = {
         appointment: id.replace("slot_", "").toUpperCase(),
       };
@@ -165,7 +168,7 @@ app.post("/webhook", async (req, res) => {
       return res.sendStatus(200);
     }
 
-    if (id.startsWith("service_")) {
+    if (id?.startsWith("service_")) {
       const booking = tempBookings[from];
       booking.service = id.replace("service_", "");
 
@@ -181,18 +184,24 @@ app.post("/webhook", async (req, res) => {
     }
   }
 
-  // ---------------- TEXT ----------------
+  // ================= TEXT =================
   if (message.type === "text") {
     const text = message.text.body;
 
-    // 🚫 لا تبدأ الحجز إلا إذا طلبه
+    // 👨‍⚕️ DOCTORS (🔥 BEFORE AI)
+    if (isDoctorsRequest(text)) {
+      await sendDoctorsImages(from, detectLanguage(text));
+      return res.sendStatus(200);
+    }
+
+    // 🤖 NORMAL CHAT (NO BOOKING)
     if (!tempBookings[from] && !isBookingRequest(text)) {
       const reply = await askAI(text);
       await sendTextMessage(from, reply);
       return res.sendStatus(200);
     }
 
-    // ▶️ بدء الحجز
+    // ▶️ START BOOKING
     if (!tempBookings[from] && isBookingRequest(text)) {
       tempBookings[from] = {};
       await sendAppointmentOptions(from);
