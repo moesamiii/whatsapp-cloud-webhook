@@ -247,6 +247,13 @@ function isDoctorRequest(text) {
   );
 }
 
+// ✅ NEW: Reset/Start request detection
+function isResetRequest(text) {
+  return /(reset|start|عيد من اول|ابدا من جديد|ابدأ من جديد|من البداية|بداية جديدة|restart|new chat|ابدا|ابدأ|عيد)/i.test(
+    text,
+  );
+}
+
 // ==============================
 // 📩 WEBHOOK
 // ==============================
@@ -291,6 +298,24 @@ app.post("/webhook", async (req, res) => {
     const text = message.text.body;
 
     console.log("📩 Message from:", from, "Text:", text);
+
+    // ✅ PRIORITY 0: RESET/START DETECTION (HIGHEST PRIORITY!)
+    if (isResetRequest(text)) {
+      console.log("🔄 Reset request detected!");
+
+      // Clear all user sessions
+      delete tempBookings[from];
+      delete cancelSessions[from];
+
+      const lang = detectLanguage(text);
+      const greeting =
+        lang === "ar"
+          ? "👋 مرحباً بك في عيادة ابتسامة!\n\nكيف يمكنني مساعدتك اليوم؟"
+          : "👋 Hello! Welcome to Ibtisama Clinic!\n\nHow can I help you today?";
+
+      await sendTextMessage(from, greeting);
+      return res.sendStatus(200);
+    }
 
     // ✅ PRIORITY 1: CANCEL DETECTION (MUST BE FIRST!)
     if (isCancelRequest(text) && !tempBookings[from]) {
