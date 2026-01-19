@@ -47,6 +47,50 @@ async function insertBookingToSupabase(booking) {
   }
 }
 
+// ✅ NEW: Find booking by phone
+async function findBookingByPhone(phone) {
+  try {
+    const { data, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .eq("phone", phone)
+      .eq("status", "new")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .single();
+
+    if (error) {
+      console.error("❌ Find booking error:", error);
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    console.error("❌ Find booking exception:", err.message);
+    return null;
+  }
+}
+
+// ✅ NEW: Cancel booking
+async function cancelBooking(id) {
+  try {
+    const { error } = await supabase
+      .from("bookings")
+      .update({ status: "canceled" })
+      .eq("id", id);
+
+    if (error) {
+      console.error("❌ Cancel booking error:", error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error("❌ Cancel booking exception:", err.message);
+    return false;
+  }
+}
+
 // ==============================
 // 🤖 GROQ AI
 // ==============================
@@ -95,7 +139,7 @@ async function sendTextMessage(to, text) {
   );
 }
 
-// ✅ NEW: Send image message
+// ✅ Send image message
 async function sendImageMessage(to, imageUrl, caption) {
   try {
     await axios.post(
@@ -116,7 +160,7 @@ async function sendImageMessage(to, imageUrl, caption) {
   }
 }
 
-// ✅ NEW: Send doctor info
+// ✅ Send doctor info
 async function sendDoctorInfo(to) {
   await sendTextMessage(to, "👨‍⚕️ فريق الأطباء لدينا:");
 
@@ -181,16 +225,22 @@ async function sendServiceList(to) {
 }
 
 // ==============================
-// 🧠 BOOKING STATE
+// 🧠 BOOKING & CANCEL STATE
 // ==============================
 const tempBookings = {};
+const cancelSessions = {}; // NEW: Track users waiting to cancel
 
-// ✅ booking intent ONLY
+// ✅ Booking intent detection
 function isBookingRequest(text) {
   return /(حجز|موعد|احجز|book|appointment|reserve)/i.test(text);
 }
 
-// ✅ NEW: Check for doctor request
+// ✅ Cancel intent detection
+function isCancelRequest(text) {
+  return /(الغاء|إلغاء|الغي|كنسل|cancel)/i.test(text);
+}
+
+// ✅ Doctor request detection
 function isDoctorRequest(text) {
   return /(طبيب|اطباء|أطباء|الاطباء|الأطباء|دكتور|دكاترة|doctor|doctors)/i.test(
     text,
@@ -240,35 +290,89 @@ app.post("/webhook", async (req, res) => {
   if (message.type === "text") {
     const text = message.text.body;
 
-    // ✅ NEW: Check for doctor request FIRST
+    console.log("📩 Message from:", from, "Text:", text);
+
+    // ✅ PRIORITY 1: CANCEL DETECTION (MUST BE FIRST!)
+    if (isCancelRequest(text) && !tempBookings[from]) {
+      console.log("🚫 Cancel request detected!");
+
+      cancelSessions[from] = true;
+
+      // Clear any ongoing booking
+      if (tempBookings[from]) {
+        delete tempBookings[from];
+      }
+
+      await sendTextMessage(from, "📌 أرسل رقم الجوال المستخدم في الحجز:");
+      return res.sendStatus(200);
+    }
+
+    // ✅ PRIORITY 2: User is in cancel flow - waiting for phone
+    if (cancelSessions[from]) {
+      const phone = text.replace(/\D/g, "");
+
+      if (phone.length < 8) {
+        await sendTextMessage(from, "⚠️ رقم الجوال غير صحيح. حاول مجددًا:");
+        return res.sendStatus(200);
+      }
+
+      // Find booking
+      const booking = await findBookingByPhone(phone);
+
+      if (!booking) {
+        await sendTextMessage(from, "❌ لا يوجد حجز مرتبط بهذا الرقم.");
+        delete cancelSessions[from];
+        return res.sendStatus(200);
+      }
+
+      // Cancel it
+      const success = await cancelBooking(booking.id);
+
+      if (success) {
+        await sendTextMessage(
+          from,
+          `🟣 تم إلغاء الحجز:\n👤 ${booking.name}\n💊 ${booking.service}\n📅 ${booking.appointment}`,
+        );
+      } else {
+        await sendTextMessage(from, "⚠️ حدث خطأ أثناء الإلغاء.");
+      }
+
+      delete cancelSessions[from];
+      return res.sendStatus(200);
+    }
+
+    // ✅ PRIORITY 3: Doctor request
     if (!tempBookings[from] && isDoctorRequest(text)) {
       await sendDoctorInfo(from);
       return res.sendStatus(200);
     }
 
-    // 🚫 لا تبدأ الحجز إلا إذا طلبه
-    if (!tempBookings[from] && !isBookingRequest(text)) {
-      const reply = await askAI(text);
-      await sendTextMessage(from, reply);
-      return res.sendStatus(200);
-    }
-
-    // ▶️ بدء الحجز
+    // ✅ PRIORITY 4: Start booking
     if (!tempBookings[from] && isBookingRequest(text)) {
+      console.log("📅 Starting booking for:", from);
       tempBookings[from] = {};
       await sendAppointmentOptions(from);
       return res.sendStatus(200);
     }
 
+    // ✅ PRIORITY 5: In booking flow - collect name
     if (tempBookings[from] && !tempBookings[from].name) {
       tempBookings[from].name = text;
       await sendTextMessage(from, "📱 أرسل رقم الجوال:");
       return res.sendStatus(200);
     }
 
+    // ✅ PRIORITY 6: In booking flow - collect phone
     if (tempBookings[from] && !tempBookings[from].phone) {
       tempBookings[from].phone = text.replace(/\D/g, "");
       await sendServiceList(from);
+      return res.sendStatus(200);
+    }
+
+    // ✅ PRIORITY 7: General question - send to AI
+    if (!tempBookings[from]) {
+      const reply = await askAI(text);
+      await sendTextMessage(from, reply);
       return res.sendStatus(200);
     }
   }
@@ -276,6 +380,19 @@ app.post("/webhook", async (req, res) => {
   res.sendStatus(200);
 });
 
+// ✅ Webhook verification
+app.get("/webhook", (req, res) => {
+  const mode = req.query["hub.mode"];
+  const token = req.query["hub.verify_token"];
+  const challenge = req.query["hub.challenge"];
+
+  if (mode === "subscribe" && token === process.env.VERIFY_TOKEN) {
+    res.status(200).send(challenge);
+  } else {
+    res.sendStatus(403);
+  }
+});
+
 // ==============================
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("🚀 Server running"));
+app.listen(PORT, () => console.log("🚀 Server running on port", PORT));
