@@ -22,6 +22,127 @@ const DOCTOR_INFO = [
 ];
 
 // ==============================
+// 🛡️ SPAM PROTECTION
+// ==============================
+const userMessageTimestamps = {}; // Track message timestamps per user
+const userWarnings = {}; // Track warnings issued to users
+const blockedUsers = {}; // Track temporarily blocked users
+
+const RATE_LIMIT_CONFIG = {
+  MAX_MESSAGES_PER_WINDOW: 5, // Max messages allowed in time window
+  TIME_WINDOW_MS: 10000, // 10 seconds
+  WARNING_THRESHOLD: 3, // Messages in 3 seconds triggers warning
+  WARNING_WINDOW_MS: 3000, // 3 seconds for warning threshold
+  BLOCK_DURATION_MS: 60000, // Block for 1 minute
+  MAX_WARNINGS: 2, // After 2 warnings, block user
+};
+
+function checkRateLimit(userId) {
+  const now = Date.now();
+
+  // Check if user is blocked
+  if (blockedUsers[userId]) {
+    if (now - blockedUsers[userId] < RATE_LIMIT_CONFIG.BLOCK_DURATION_MS) {
+      const remainingTime = Math.ceil(
+        (RATE_LIMIT_CONFIG.BLOCK_DURATION_MS - (now - blockedUsers[userId])) /
+          1000,
+      );
+      return {
+        allowed: false,
+        blocked: true,
+        remainingTime,
+      };
+    } else {
+      // Unblock user
+      delete blockedUsers[userId];
+      delete userWarnings[userId];
+      userMessageTimestamps[userId] = [];
+    }
+  }
+
+  // Initialize user tracking if not exists
+  if (!userMessageTimestamps[userId]) {
+    userMessageTimestamps[userId] = [];
+  }
+
+  // Remove timestamps outside the time window
+  userMessageTimestamps[userId] = userMessageTimestamps[userId].filter(
+    (timestamp) => now - timestamp < RATE_LIMIT_CONFIG.TIME_WINDOW_MS,
+  );
+
+  // Check for spam in warning window (faster rate)
+  const recentMessages = userMessageTimestamps[userId].filter(
+    (timestamp) => now - timestamp < RATE_LIMIT_CONFIG.WARNING_WINDOW_MS,
+  );
+
+  // Issue warning if too many messages too fast
+  if (recentMessages.length >= RATE_LIMIT_CONFIG.WARNING_THRESHOLD) {
+    userWarnings[userId] = (userWarnings[userId] || 0) + 1;
+
+    // Block user if exceeded max warnings
+    if (userWarnings[userId] >= RATE_LIMIT_CONFIG.MAX_WARNINGS) {
+      blockedUsers[userId] = now;
+      console.log(`🚫 User ${userId} blocked for spam`);
+      return {
+        allowed: false,
+        blocked: true,
+        remainingTime: Math.ceil(RATE_LIMIT_CONFIG.BLOCK_DURATION_MS / 1000),
+      };
+    }
+
+    return {
+      allowed: true,
+      warning: true,
+      warningCount: userWarnings[userId],
+    };
+  }
+
+  // Check if user exceeded rate limit
+  if (
+    userMessageTimestamps[userId].length >=
+    RATE_LIMIT_CONFIG.MAX_MESSAGES_PER_WINDOW
+  ) {
+    return {
+      allowed: false,
+      blocked: false,
+      message: "تجاوزت الحد المسموح من الرسائل",
+    };
+  }
+
+  // Add current timestamp
+  userMessageTimestamps[userId].push(now);
+
+  return {
+    allowed: true,
+    warning: false,
+  };
+}
+
+// Clean up old data every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+
+  // Clean up message timestamps
+  for (const userId in userMessageTimestamps) {
+    userMessageTimestamps[userId] = userMessageTimestamps[userId].filter(
+      (timestamp) => now - timestamp < RATE_LIMIT_CONFIG.TIME_WINDOW_MS,
+    );
+
+    if (userMessageTimestamps[userId].length === 0) {
+      delete userMessageTimestamps[userId];
+    }
+  }
+
+  // Clean up unblocked users
+  for (const userId in blockedUsers) {
+    if (now - blockedUsers[userId] >= RATE_LIMIT_CONFIG.BLOCK_DURATION_MS) {
+      delete blockedUsers[userId];
+      delete userWarnings[userId];
+    }
+  }
+}, 300000); // 5 minutes
+
+// ==============================
 // 🔑 SUPABASE SETUP
 // ==============================
 const supabase = createClient(
@@ -262,6 +383,35 @@ app.post("/webhook", async (req, res) => {
   if (!message) return res.sendStatus(200);
 
   const from = message.from;
+
+  // ✅ SPAM PROTECTION CHECK
+  const rateLimitCheck = checkRateLimit(from);
+
+  if (!rateLimitCheck.allowed) {
+    if (rateLimitCheck.blocked) {
+      console.log(`🚫 Blocked user ${from} attempted to send message`);
+      await sendTextMessage(
+        from,
+        `⛔ تم حظرك مؤقتاً بسبب إرسال رسائل كثيرة.\n\nسيتم رفع الحظر بعد ${rateLimitCheck.remainingTime} ثانية.\n\nيرجى الانتظار والتواصل بشكل طبيعي.`,
+      );
+      return res.sendStatus(200);
+    } else {
+      await sendTextMessage(
+        from,
+        "⚠️ يرجى الانتظار قليلاً قبل إرسال رسائل إضافية.",
+      );
+      return res.sendStatus(200);
+    }
+  }
+
+  // Issue warning if needed
+  if (rateLimitCheck.warning) {
+    console.log(`⚠️ Warning ${rateLimitCheck.warningCount} issued to ${from}`);
+    await sendTextMessage(
+      from,
+      `⚠️ تحذير ${rateLimitCheck.warningCount}/${RATE_LIMIT_CONFIG.MAX_WARNINGS}: يرجى التواصل بشكل طبيعي وعدم إرسال رسائل متتالية سريعة.\n\nإذا استمررت، سيتم حظرك مؤقتاً.`,
+    );
+  }
 
   // ---------------- BUTTONS ----------------
   if (message.type === "interactive") {
