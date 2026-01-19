@@ -22,43 +22,41 @@ const DOCTOR_INFO = [
 ];
 
 // ==============================
-// 🛡️ SPAM PROTECTION
+// 🛡️ SPAM PROTECTION - DUPLICATE MESSAGE DETECTION
 // ==============================
 const userMessageTimestamps = {}; // Track message timestamps per user
-const userWarnings = {}; // Track warnings issued to users
-const blockedUsers = {}; // Track temporarily blocked users
+const userLastMessages = {}; // Track last message content per user
+const processingMessages = {}; // Track messages currently being processed
 
 const RATE_LIMIT_CONFIG = {
-  MAX_MESSAGES_PER_WINDOW: 5, // Max messages allowed in time window
-  TIME_WINDOW_MS: 10000, // 10 seconds
-  WARNING_THRESHOLD: 3, // Messages in 3 seconds triggers warning
-  WARNING_WINDOW_MS: 3000, // 3 seconds for warning threshold
-  BLOCK_DURATION_MS: 60000, // Block for 1 minute
-  MAX_WARNINGS: 2, // After 2 warnings, block user
+  DUPLICATE_WINDOW_MS: 5000, // Ignore duplicate messages within 5 seconds
+  MAX_MESSAGES_PER_WINDOW: 10, // Max messages allowed in time window
+  TIME_WINDOW_MS: 30000, // 30 seconds
+  PROCESSING_TIMEOUT_MS: 10000, // Max time to process a message
 };
+
+function isDuplicateMessage(userId, messageText) {
+  const now = Date.now();
+
+  // Initialize tracking if not exists
+  if (!userLastMessages[userId]) {
+    userLastMessages[userId] = { text: "", timestamp: 0 };
+  }
+
+  // Check if this is a duplicate message
+  const lastMsg = userLastMessages[userId];
+  const isDuplicate =
+    lastMsg.text === messageText &&
+    now - lastMsg.timestamp < RATE_LIMIT_CONFIG.DUPLICATE_WINDOW_MS;
+
+  // Update last message
+  userLastMessages[userId] = { text: messageText, timestamp: now };
+
+  return isDuplicate;
+}
 
 function checkRateLimit(userId) {
   const now = Date.now();
-
-  // Check if user is blocked
-  if (blockedUsers[userId]) {
-    if (now - blockedUsers[userId] < RATE_LIMIT_CONFIG.BLOCK_DURATION_MS) {
-      const remainingTime = Math.ceil(
-        (RATE_LIMIT_CONFIG.BLOCK_DURATION_MS - (now - blockedUsers[userId])) /
-          1000,
-      );
-      return {
-        allowed: false,
-        blocked: true,
-        remainingTime,
-      };
-    } else {
-      // Unblock user
-      delete blockedUsers[userId];
-      delete userWarnings[userId];
-      userMessageTimestamps[userId] = [];
-    }
-  }
 
   // Initialize user tracking if not exists
   if (!userMessageTimestamps[userId]) {
@@ -70,42 +68,15 @@ function checkRateLimit(userId) {
     (timestamp) => now - timestamp < RATE_LIMIT_CONFIG.TIME_WINDOW_MS,
   );
 
-  // Check for spam in warning window (faster rate)
-  const recentMessages = userMessageTimestamps[userId].filter(
-    (timestamp) => now - timestamp < RATE_LIMIT_CONFIG.WARNING_WINDOW_MS,
-  );
-
-  // Issue warning if too many messages too fast
-  if (recentMessages.length >= RATE_LIMIT_CONFIG.WARNING_THRESHOLD) {
-    userWarnings[userId] = (userWarnings[userId] || 0) + 1;
-
-    // Block user if exceeded max warnings
-    if (userWarnings[userId] >= RATE_LIMIT_CONFIG.MAX_WARNINGS) {
-      blockedUsers[userId] = now;
-      console.log(`🚫 User ${userId} blocked for spam`);
-      return {
-        allowed: false,
-        blocked: true,
-        remainingTime: Math.ceil(RATE_LIMIT_CONFIG.BLOCK_DURATION_MS / 1000),
-      };
-    }
-
-    return {
-      allowed: true,
-      warning: true,
-      warningCount: userWarnings[userId],
-    };
-  }
-
   // Check if user exceeded rate limit
   if (
     userMessageTimestamps[userId].length >=
     RATE_LIMIT_CONFIG.MAX_MESSAGES_PER_WINDOW
   ) {
+    console.log(`⚠️ Rate limit exceeded for ${userId} - silently ignoring`);
     return {
       allowed: false,
-      blocked: false,
-      message: "تجاوزت الحد المسموح من الرسائل",
+      rateLimited: true,
     };
   }
 
@@ -114,11 +85,41 @@ function checkRateLimit(userId) {
 
   return {
     allowed: true,
-    warning: false,
+    rateLimited: false,
   };
 }
 
-// Clean up old data every 5 minutes
+function isMessageBeingProcessed(userId, messageId) {
+  const now = Date.now();
+
+  // Clean up old processing entries
+  for (const key in processingMessages) {
+    if (
+      now - processingMessages[key] >
+      RATE_LIMIT_CONFIG.PROCESSING_TIMEOUT_MS
+    ) {
+      delete processingMessages[key];
+    }
+  }
+
+  const processingKey = `${userId}:${messageId}`;
+
+  // Check if message is already being processed
+  if (processingMessages[processingKey]) {
+    return true;
+  }
+
+  // Mark message as being processed
+  processingMessages[processingKey] = now;
+  return false;
+}
+
+function markMessageProcessed(userId, messageId) {
+  const processingKey = `${userId}:${messageId}`;
+  delete processingMessages[processingKey];
+}
+
+// Clean up old data every 2 minutes
 setInterval(() => {
   const now = Date.now();
 
@@ -133,14 +134,26 @@ setInterval(() => {
     }
   }
 
-  // Clean up unblocked users
-  for (const userId in blockedUsers) {
-    if (now - blockedUsers[userId] >= RATE_LIMIT_CONFIG.BLOCK_DURATION_MS) {
-      delete blockedUsers[userId];
-      delete userWarnings[userId];
+  // Clean up last messages
+  for (const userId in userLastMessages) {
+    if (
+      now - userLastMessages[userId].timestamp >
+      RATE_LIMIT_CONFIG.DUPLICATE_WINDOW_MS * 2
+    ) {
+      delete userLastMessages[userId];
     }
   }
-}, 300000); // 5 minutes
+
+  // Clean up processing messages
+  for (const key in processingMessages) {
+    if (
+      now - processingMessages[key] >
+      RATE_LIMIT_CONFIG.PROCESSING_TIMEOUT_MS
+    ) {
+      delete processingMessages[key];
+    }
+  }
+}, 120000); // 2 minutes
 
 // ==============================
 // 🔑 SUPABASE SETUP
@@ -383,173 +396,192 @@ app.post("/webhook", async (req, res) => {
   if (!message) return res.sendStatus(200);
 
   const from = message.from;
+  const messageId = message.id;
 
-  // ✅ SPAM PROTECTION CHECK
-  const rateLimitCheck = checkRateLimit(from);
-
-  if (!rateLimitCheck.allowed) {
-    if (rateLimitCheck.blocked) {
-      console.log(`🚫 Blocked user ${from} attempted to send message`);
-      await sendTextMessage(
-        from,
-        `⛔ تم حظرك مؤقتاً بسبب إرسال رسائل كثيرة.\n\nسيتم رفع الحظر بعد ${rateLimitCheck.remainingTime} ثانية.\n\nيرجى الانتظار والتواصل بشكل طبيعي.`,
-      );
-      return res.sendStatus(200);
-    } else {
-      await sendTextMessage(
-        from,
-        "⚠️ يرجى الانتظار قليلاً قبل إرسال رسائل إضافية.",
-      );
-      return res.sendStatus(200);
-    }
-  }
-
-  // Issue warning if needed
-  if (rateLimitCheck.warning) {
-    console.log(`⚠️ Warning ${rateLimitCheck.warningCount} issued to ${from}`);
-    await sendTextMessage(
-      from,
-      `⚠️ تحذير ${rateLimitCheck.warningCount}/${RATE_LIMIT_CONFIG.MAX_WARNINGS}: يرجى التواصل بشكل طبيعي وعدم إرسال رسائل متتالية سريعة.\n\nإذا استمررت، سيتم حظرك مؤقتاً.`,
+  // ✅ CHECK IF MESSAGE IS ALREADY BEING PROCESSED
+  if (isMessageBeingProcessed(from, messageId)) {
+    console.log(
+      `🔄 Message ${messageId} from ${from} is already being processed - ignoring duplicate`,
     );
+    return res.sendStatus(200);
   }
 
-  // ---------------- BUTTONS ----------------
-  if (message.type === "interactive") {
-    const id =
-      message.interactive?.list_reply?.id ||
-      message.interactive?.button_reply?.id;
+  try {
+    // ✅ DUPLICATE MESSAGE DETECTION
+    if (message.type === "text") {
+      const text = message.text.body;
 
-    if (id.startsWith("slot_")) {
-      tempBookings[from] = {
-        appointment: id.replace("slot_", "").toUpperCase(),
-      };
-      await sendTextMessage(from, "👍 أرسل اسمك:");
-      return res.sendStatus(200);
-    }
-
-    if (id.startsWith("service_")) {
-      const booking = tempBookings[from];
-      booking.service = id.replace("service_", "");
-
-      await insertBookingToSupabase(booking);
-
-      await sendTextMessage(
-        from,
-        `✅ تم تأكيد الحجز:\n👤 ${booking.name}\n📱 ${booking.phone}\n💊 ${booking.service}\n📅 ${booking.appointment}`,
-      );
-
-      delete tempBookings[from];
-      return res.sendStatus(200);
-    }
-  }
-
-  // ---------------- TEXT ----------------
-  if (message.type === "text") {
-    const text = message.text.body;
-
-    console.log("📩 Message from:", from, "Text:", text);
-
-    // ✅ PRIORITY 0: RESET/START DETECTION (HIGHEST PRIORITY!)
-    if (isResetRequest(text)) {
-      console.log("🔄 Reset request detected!");
-
-      // Clear all user sessions
-      delete tempBookings[from];
-      delete cancelSessions[from];
-
-      const lang = detectLanguage(text);
-      const greeting =
-        lang === "ar"
-          ? "👋 مرحباً بك في عيادة ابتسامة!\n\nكيف يمكنني مساعدتك اليوم؟"
-          : "👋 Hello! Welcome to Ibtisama Clinic!\n\nHow can I help you today?";
-
-      await sendTextMessage(from, greeting);
-      return res.sendStatus(200);
-    }
-
-    // ✅ PRIORITY 1: CANCEL DETECTION (MUST BE FIRST!)
-    if (isCancelRequest(text) && !tempBookings[from]) {
-      console.log("🚫 Cancel request detected!");
-
-      cancelSessions[from] = true;
-
-      // Clear any ongoing booking
-      if (tempBookings[from]) {
-        delete tempBookings[from];
+      if (isDuplicateMessage(from, text)) {
+        console.log(`🔁 Duplicate message from ${from}: "${text}" - ignoring`);
+        markMessageProcessed(from, messageId);
+        return res.sendStatus(200);
       }
+    }
 
-      await sendTextMessage(from, "📌 أرسل رقم الجوال المستخدم في الحجز:");
+    // ✅ RATE LIMIT CHECK
+    const rateLimitCheck = checkRateLimit(from);
+
+    if (!rateLimitCheck.allowed) {
+      console.log(`⚠️ Rate limited user ${from} - silently ignoring`);
+      markMessageProcessed(from, messageId);
       return res.sendStatus(200);
     }
 
-    // ✅ PRIORITY 2: User is in cancel flow - waiting for phone
-    if (cancelSessions[from]) {
-      const phone = text.replace(/\D/g, "");
+    // ---------------- BUTTONS ----------------
+    if (message.type === "interactive") {
+      const id =
+        message.interactive?.list_reply?.id ||
+        message.interactive?.button_reply?.id;
 
-      if (phone.length < 8) {
-        await sendTextMessage(from, "⚠️ رقم الجوال غير صحيح. حاول مجددًا:");
+      if (id.startsWith("slot_")) {
+        tempBookings[from] = {
+          appointment: id.replace("slot_", "").toUpperCase(),
+        };
+        await sendTextMessage(from, "👍 أرسل اسمك:");
+        markMessageProcessed(from, messageId);
         return res.sendStatus(200);
       }
 
-      // Find booking
-      const booking = await findBookingByPhone(phone);
+      if (id.startsWith("service_")) {
+        const booking = tempBookings[from];
+        booking.service = id.replace("service_", "");
 
-      if (!booking) {
-        await sendTextMessage(from, "❌ لا يوجد حجز مرتبط بهذا الرقم.");
-        delete cancelSessions[from];
-        return res.sendStatus(200);
-      }
+        await insertBookingToSupabase(booking);
 
-      // Cancel it
-      const success = await cancelBooking(booking.id);
-
-      if (success) {
         await sendTextMessage(
           from,
-          `🟣 تم إلغاء الحجز:\n👤 ${booking.name}\n💊 ${booking.service}\n📅 ${booking.appointment}`,
+          `✅ تم تأكيد الحجز:\n👤 ${booking.name}\n📱 ${booking.phone}\n💊 ${booking.service}\n📅 ${booking.appointment}`,
         );
-      } else {
-        await sendTextMessage(from, "⚠️ حدث خطأ أثناء الإلغاء.");
+
+        delete tempBookings[from];
+        markMessageProcessed(from, messageId);
+        return res.sendStatus(200);
+      }
+    }
+
+    // ---------------- TEXT ----------------
+    if (message.type === "text") {
+      const text = message.text.body;
+
+      console.log("📩 Message from:", from, "Text:", text);
+
+      // ✅ PRIORITY 0: RESET/START DETECTION (HIGHEST PRIORITY!)
+      if (isResetRequest(text)) {
+        console.log("🔄 Reset request detected!");
+
+        // Clear all user sessions
+        delete tempBookings[from];
+        delete cancelSessions[from];
+
+        const lang = detectLanguage(text);
+        const greeting =
+          lang === "ar"
+            ? "👋 مرحباً بك في عيادة ابتسامة!\n\nكيف يمكنني مساعدتك اليوم؟"
+            : "👋 Hello! Welcome to Ibtisama Clinic!\n\nHow can I help you today?";
+
+        await sendTextMessage(from, greeting);
+        markMessageProcessed(from, messageId);
+        return res.sendStatus(200);
       }
 
-      delete cancelSessions[from];
-      return res.sendStatus(200);
+      // ✅ PRIORITY 1: CANCEL DETECTION (MUST BE FIRST!)
+      if (isCancelRequest(text) && !tempBookings[from]) {
+        console.log("🚫 Cancel request detected!");
+
+        cancelSessions[from] = true;
+
+        // Clear any ongoing booking
+        if (tempBookings[from]) {
+          delete tempBookings[from];
+        }
+
+        await sendTextMessage(from, "📌 أرسل رقم الجوال المستخدم في الحجز:");
+        markMessageProcessed(from, messageId);
+        return res.sendStatus(200);
+      }
+
+      // ✅ PRIORITY 2: User is in cancel flow - waiting for phone
+      if (cancelSessions[from]) {
+        const phone = text.replace(/\D/g, "");
+
+        if (phone.length < 8) {
+          await sendTextMessage(from, "⚠️ رقم الجوال غير صحيح. حاول مجددًا:");
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
+
+        // Find booking
+        const booking = await findBookingByPhone(phone);
+
+        if (!booking) {
+          await sendTextMessage(from, "❌ لا يوجد حجز مرتبط بهذا الرقم.");
+          delete cancelSessions[from];
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
+
+        // Cancel it
+        const success = await cancelBooking(booking.id);
+
+        if (success) {
+          await sendTextMessage(
+            from,
+            `🟣 تم إلغاء الحجز:\n👤 ${booking.name}\n💊 ${booking.service}\n📅 ${booking.appointment}`,
+          );
+        } else {
+          await sendTextMessage(from, "⚠️ حدث خطأ أثناء الإلغاء.");
+        }
+
+        delete cancelSessions[from];
+        markMessageProcessed(from, messageId);
+        return res.sendStatus(200);
+      }
+
+      // ✅ PRIORITY 3: Doctor request
+      if (!tempBookings[from] && isDoctorRequest(text)) {
+        await sendDoctorInfo(from);
+        markMessageProcessed(from, messageId);
+        return res.sendStatus(200);
+      }
+
+      // ✅ PRIORITY 4: Start booking
+      if (!tempBookings[from] && isBookingRequest(text)) {
+        console.log("📅 Starting booking for:", from);
+        tempBookings[from] = {};
+        await sendAppointmentOptions(from);
+        markMessageProcessed(from, messageId);
+        return res.sendStatus(200);
+      }
+
+      // ✅ PRIORITY 5: In booking flow - collect name
+      if (tempBookings[from] && !tempBookings[from].name) {
+        tempBookings[from].name = text;
+        await sendTextMessage(from, "📱 أرسل رقم الجوال:");
+        markMessageProcessed(from, messageId);
+        return res.sendStatus(200);
+      }
+
+      // ✅ PRIORITY 6: In booking flow - collect phone
+      if (tempBookings[from] && !tempBookings[from].phone) {
+        tempBookings[from].phone = text.replace(/\D/g, "");
+        await sendServiceList(from);
+        markMessageProcessed(from, messageId);
+        return res.sendStatus(200);
+      }
+
+      // ✅ PRIORITY 7: General question - send to AI
+      if (!tempBookings[from]) {
+        const reply = await askAI(text);
+        await sendTextMessage(from, reply);
+        markMessageProcessed(from, messageId);
+        return res.sendStatus(200);
+      }
     }
 
-    // ✅ PRIORITY 3: Doctor request
-    if (!tempBookings[from] && isDoctorRequest(text)) {
-      await sendDoctorInfo(from);
-      return res.sendStatus(200);
-    }
-
-    // ✅ PRIORITY 4: Start booking
-    if (!tempBookings[from] && isBookingRequest(text)) {
-      console.log("📅 Starting booking for:", from);
-      tempBookings[from] = {};
-      await sendAppointmentOptions(from);
-      return res.sendStatus(200);
-    }
-
-    // ✅ PRIORITY 5: In booking flow - collect name
-    if (tempBookings[from] && !tempBookings[from].name) {
-      tempBookings[from].name = text;
-      await sendTextMessage(from, "📱 أرسل رقم الجوال:");
-      return res.sendStatus(200);
-    }
-
-    // ✅ PRIORITY 6: In booking flow - collect phone
-    if (tempBookings[from] && !tempBookings[from].phone) {
-      tempBookings[from].phone = text.replace(/\D/g, "");
-      await sendServiceList(from);
-      return res.sendStatus(200);
-    }
-
-    // ✅ PRIORITY 7: General question - send to AI
-    if (!tempBookings[from]) {
-      const reply = await askAI(text);
-      await sendTextMessage(from, reply);
-      return res.sendStatus(200);
-    }
+    markMessageProcessed(from, messageId);
+  } catch (error) {
+    console.error("❌ Error processing message:", error);
+    markMessageProcessed(from, messageId);
   }
 
   res.sendStatus(200);
