@@ -3,6 +3,10 @@ import axios from "axios";
 import Groq from "groq-sdk";
 import { createClient } from "@supabase/supabase-js";
 
+// ✅ NEW IMPORTS
+import { isDoctorsRequest } from "./detectionHelpers.js";
+import { sendDoctorsImages } from "./mediaService.js";
+
 const app = express();
 app.use(express.json());
 
@@ -137,7 +141,6 @@ async function sendServiceList(to) {
 // ==============================
 const tempBookings = {};
 
-// ✅ booking intent ONLY
 function isBookingRequest(text) {
   return /(حجز|موعد|احجز|book|appointment|reserve)/i.test(text);
 }
@@ -184,6 +187,12 @@ app.post("/webhook", async (req, res) => {
   // ---------------- TEXT ----------------
   if (message.type === "text") {
     const text = message.text.body;
+
+    // 👨‍⚕️ DOCTORS REQUEST (🔥 NEW FEATURE)
+    if (isDoctorsRequest(text)) {
+      await sendDoctorsImages(from, detectLanguage(text));
+      return res.sendStatus(200);
+    }
 
     // 🚫 لا تبدأ الحجز إلا إذا طلبه
     if (!tempBookings[from] && !isBookingRequest(text)) {
