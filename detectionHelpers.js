@@ -1,5 +1,5 @@
 /**
- * detectionHelpers.js (FINAL – Doctors / Booking / Cancel FIXED)
+ * detectionHelpers.js (FINAL – Doctors / Booking FIXED)
  */
 
 const crypto = require("crypto");
@@ -141,7 +141,7 @@ function isOffersConfirmation(text = "") {
 }
 
 // ---------------------------------------------
-// 👨‍⚕️ Doctors Detection
+// 👨‍⚕️ Doctors Detection (IMPORTANT)
 // ---------------------------------------------
 function isDoctorsRequest(text = "") {
   const keywords = [
@@ -162,7 +162,7 @@ function isDoctorsRequest(text = "") {
 }
 
 // ---------------------------------------------
-// 📅 Booking Detection (STRICT)
+// 📅 Booking Detection (ONLY booking words)
 // ---------------------------------------------
 function isBookingRequest(text = "") {
   const keywords = [
@@ -180,23 +180,19 @@ function isBookingRequest(text = "") {
 }
 
 // ---------------------------------------------
-// ❌ Cancel Booking Detection (UPDATED)
+// ❌ Cancel Booking Detection
 // ---------------------------------------------
 function isCancelRequest(text = "") {
   const keywords = [
     "الغاء",
     "إلغاء",
     "الغي",
-    "الغاء الحجز",
-    "إلغاء الحجز",
     "كنسل",
     "cancel",
     "cancel booking",
     "cancel appointment",
     "ابغى الغي",
     "ابي الغي",
-    "ما بدي الموعد",
-    "غيرت رأيي",
   ];
   return includesAny(keywords, text);
 }

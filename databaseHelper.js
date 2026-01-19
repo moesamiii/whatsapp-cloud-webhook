@@ -25,7 +25,7 @@ function getSupabase() {
 }
 
 // ==============================================
-// 📞 Normalize phone
+// 📞 Normalize phone (keep leading zero)
 // ==============================================
 function normalizePhone(phone) {
   if (!phone) return "";
@@ -77,6 +77,8 @@ async function findLastBookingByPhone(rawPhone) {
     const supabase = getSupabase();
     const phone = normalizePhone(rawPhone);
 
+    console.log("🔍 Searching booking for phone:", phone);
+
     const { data, error } = await supabase
       .from("bookings")
       .select("*")
@@ -122,7 +124,7 @@ async function updateBookingStatus(id, newStatus) {
 }
 
 // ==============================================
-// 📊 GET ALL BOOKINGS
+// 📊 GET ALL BOOKINGS (Dashboard)
 // ==============================================
 async function getAllBookingsFromSupabase() {
   try {
@@ -146,7 +148,7 @@ async function getAllBookingsFromSupabase() {
 }
 
 // ==============================================
-// 📤 EXPORTS (FIXED)
+// 📤 EXPORTS
 // ==============================================
 module.exports = {
   insertBookingToSupabase,
