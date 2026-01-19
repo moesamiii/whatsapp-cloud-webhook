@@ -1,10 +1,11 @@
 /**
- * bookingFlowHandler.js (FIXED SERVICE SELECTION)
+ * bookingFlowHandler.js (FINAL — Stable)
  *
  * Responsibilities:
  * - Handle booking flow (name → phone → service)
  * - Handle cancel flow (detect → ask for phone → cancel)
  * - Handle interactive buttons (slots + services)
+ * - AI fallback when no active flow
  */
 
 const {
@@ -25,18 +26,14 @@ const {
 } = require("./bookingSteps");
 
 // ---------------------------------------------
-// 🧠 Sessions = per-user conversation state
+// 🧠 Sessions (per user)
 // ---------------------------------------------
-const sessions = {}; // { userId: { ...state } }
+const sessions = {}; // { userId: { waitingForCancelPhone: boolean } }
 
 function getSession(userId) {
   if (!sessions[userId]) {
     sessions[userId] = {
-      waitingForOffersConfirmation: false,
-      waitingForDoctorConfirmation: false,
-      waitingForBookingDetails: false,
       waitingForCancelPhone: false,
-      lastIntent: null,
     };
   }
   return sessions[userId];
@@ -44,63 +41,44 @@ function getSession(userId) {
 
 /**
  * ===========================
- *  📌 HANDLE BUTTON MESSAGES
+ *  📌 HANDLE INTERACTIVE (BUTTON / LIST)
  * ===========================
  */
 async function handleInteractiveMessage(message, from, tempBookings) {
-  const itype = message.interactive?.type;
-
+  const type = message.interactive?.type;
   const id =
-    itype === "list_reply"
+    type === "list_reply"
       ? message.interactive?.list_reply?.id
       : message.interactive?.button_reply?.id;
 
-  console.log("🔘 Interactive message received:", { from, id, type: itype });
+  if (!id) return;
 
-  // ========== APPOINTMENT BUTTON ==========
-  if (id?.startsWith("slot_")) {
+  console.log("🔘 Interactive:", from, id);
+
+  // ---------------- SLOT ----------------
+  if (id.startsWith("slot_")) {
     const appointment = id.replace("slot_", "").toUpperCase();
+
     tempBookings[from] = { appointment };
 
     await sendTextMessage(from, "👍 تم اختيار الموعد! الآن أرسل اسمك:");
     return;
   }
 
-  // ========== SERVICE BUTTON (FIXED) ==========
-  if (id?.startsWith("service_")) {
-    // ✅ FIXED: Just remove "service_" prefix, keep the Arabic text as-is
-    const serviceName = id.replace("service_", "");
-
-    console.log("💊 Service selected:", serviceName);
-    console.log("📋 Current booking state:", tempBookings[from]);
-
-    if (!tempBookings[from]) {
-      console.log("❌ No booking found for user:", from);
-      await sendTextMessage(
-        from,
-        "⚠️ يجب إكمال خطوات الحجز قبل اختيار الخدمة.",
-      );
-      return;
-    }
-
-    if (!tempBookings[from].phone) {
-      console.log("❌ Phone missing for user:", from);
-      await sendTextMessage(
-        from,
-        "⚠️ يجب إكمال خطوات الحجز قبل اختيار الخدمة.",
-      );
-      return;
-    }
-
-    tempBookings[from].service = serviceName;
+  // ---------------- SERVICE ----------------
+  if (id.startsWith("service_")) {
     const booking = tempBookings[from];
 
-    console.log("✅ Complete booking:", booking);
+    if (!booking || !booking.phone) {
+      await sendTextMessage(from, "⚠️ يجب إكمال خطوات الحجز بالترتيب أولاً.");
+      return;
+    }
 
-    // 1️⃣ SAVE BOOKING → SUPABASE ONLY
+    booking.service = id.replace("service_", "");
+
+    // 🔒 SAVE ONLY ONCE
     await insertBookingToSupabase(booking);
 
-    // 2️⃣ Confirmation
     await sendTextMessage(
       from,
       `✅ تم حفظ حجزك بنجاح:\n👤 ${booking.name}\n📱 ${booking.phone}\n💊 ${booking.service}\n📅 ${booking.appointment}`,
@@ -121,22 +99,19 @@ async function handleTextMessage(text, from, tempBookings) {
 
   /**
    * ---------------------------------------------
-   * 🔥 CANCEL BOOKING SYSTEM
+   * ❌ CANCEL FLOW
    * ---------------------------------------------
    */
-
-  // Step 1 — Detect cancel intent
   if (isCancelRequest(text)) {
     session.waitingForCancelPhone = true;
 
-    // stop any booking flow currently running
+    // cancel any active booking
     if (tempBookings[from]) delete tempBookings[from];
 
     await askForCancellationPhone(from);
     return;
   }
 
-  // Step 2 — Waiting for phone input to cancel booking
   if (session.waitingForCancelPhone) {
     const phone = text.replace(/\D/g, "");
 
@@ -146,45 +121,39 @@ async function handleTextMessage(text, from, tempBookings) {
     }
 
     session.waitingForCancelPhone = false;
-
     await processCancellation(from, phone);
     return;
   }
 
   /**
    * ---------------------------------------------
-   * 🔥 BOOKING FLOW
+   * 📅 BOOKING FLOW
    * ---------------------------------------------
    */
 
-  // Quick shortcut (3,6,9 → PM)
+  // shortcut: 3 / 6 / 9
   if (!tempBookings[from] && ["3", "6", "9"].includes(text)) {
-    const appointment = `${text} PM`;
-    tempBookings[from] = { appointment };
-
+    tempBookings[from] = { appointment: `${text} PM` };
     await sendTextMessage(from, "👍 تم اختيار الموعد! الآن أرسل اسمك:");
     return;
   }
 
-  // NAME STEP
   if (tempBookings[from] && !tempBookings[from].name) {
     await handleNameStep(text, from, tempBookings);
     return;
   }
 
-  // PHONE STEP
   if (tempBookings[from] && !tempBookings[from].phone) {
     await handlePhoneStep(text, from, tempBookings);
     return;
   }
 
-  // SERVICE STEP
   if (tempBookings[from] && !tempBookings[from].service) {
     await handleServiceStep(text, from, tempBookings);
     return;
   }
 
-  // User wants to start booking
+  // start booking explicitly
   if (!tempBookings[from] && isBookingRequest(text)) {
     await sendAppointmentOptions(from);
     return;
@@ -192,16 +161,16 @@ async function handleTextMessage(text, from, tempBookings) {
 
   /**
    * ---------------------------------------------
-   * 🤖 AI fallback
+   * 🤖 AI FALLBACK (NO ACTIVE FLOW)
    * ---------------------------------------------
    */
   if (!tempBookings[from]) {
     const reply = await askAI(text);
     await sendTextMessage(from, reply);
-    return;
   }
 }
 
+// ---------------------------------------------
 module.exports = {
   getSession,
   handleInteractiveMessage,
