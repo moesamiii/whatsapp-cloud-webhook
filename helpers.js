@@ -1,12 +1,12 @@
 /**
- * helpers.js (FINAL – FULL VERSION, Supabase ONLY)
+ * helpers.js (FINAL — Supabase ONLY, No Google Sheets)
  */
 
 const axios = require("axios");
 const { askAI, validateNameWithAI } = require("./aiHelper");
 
 // =============================================
-// 🗄 SUPABASE — BOOKING + CANCEL
+// 🗄 SUPABASE — ALL BOOKING LOGIC HERE
 // =============================================
 const {
   findLastBookingByPhone,
@@ -25,7 +25,7 @@ const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 // =============================================
 async function sendTextMessage(to, text) {
   try {
-    console.log("📤 WhatsApp →", to, text);
+    console.log(`📤 Sending WhatsApp: ${to}`, text);
 
     await axios.post(
       `https://graph.facebook.com/v17.0/${PHONE_NUMBER_ID}/messages`,
@@ -47,7 +47,7 @@ async function sendTextMessage(to, text) {
 }
 
 // =============================================
-// 📅 APPOINTMENT OPTIONS
+// 📅 APPOINTMENT BUTTONS
 // =============================================
 async function sendAppointmentOptions(to) {
   try {
@@ -131,13 +131,13 @@ async function sendServiceList(to) {
   }
 }
 
-// =============================================
-// ❌ CANCEL BOOKING FLOW
-// =============================================
+// ======================================================
+// 🔥 CANCEL BOOKING
+// ======================================================
 async function askForCancellationPhone(to) {
   await sendTextMessage(
     to,
-    "❌ لإلغاء الحجز، أرسل رقم الجوال المستخدم في الحجز:",
+    "📌 أرسل رقم الجوال المستخدم بالحجز لإلغاء الموعد.",
   );
 }
 
@@ -150,21 +150,11 @@ async function processCancellation(to, phone) {
       return;
     }
 
-    if (booking.status === "cancelled") {
-      await sendTextMessage(to, "ℹ️ هذا الحجز ملغي مسبقًا.");
-      return;
-    }
-
-    const updated = await updateBookingStatus(booking.id, "cancelled");
-
-    if (!updated) {
-      await sendTextMessage(to, "⚠️ فشل إلغاء الحجز. حاول لاحقًا.");
-      return;
-    }
+    await updateBookingStatus(booking.id, "Canceled");
 
     await sendTextMessage(
       to,
-      `✅ تم إلغاء الحجز بنجاح:\n\n👤 الاسم: ${booking.name}\n💊 الخدمة: ${booking.service}\n📅 الموعد: ${booking.appointment}`,
+      `🟣 تم إلغاء الحجز:\n👤 ${booking.name}\n💊 ${booking.service}\n📅 ${booking.appointment}`,
     );
   } catch (err) {
     console.error("❌ Cancel error:", err.message);
@@ -185,7 +175,7 @@ module.exports = {
   sendAppointmentOptions,
   sendServiceList,
 
-  // Supabase
+  // Supabase ONLY
   insertBookingToSupabase,
 
   // Cancellation
