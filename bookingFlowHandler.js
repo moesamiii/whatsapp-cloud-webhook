@@ -1,16 +1,15 @@
 /**
- * bookingFlowHandler.js (WITH DAY SELECTION)
+ * bookingFlowHandler.js (FIXED SERVICE SELECTION)
  *
  * Responsibilities:
- * - Handle booking flow (day → time → name → phone → service)
+ * - Handle booking flow (name → phone → service)
  * - Handle cancel flow (detect → ask for phone → cancel)
- * - Handle interactive buttons (days + slots + services)
+ * - Handle interactive buttons (slots + services)
  */
 
 const {
   askAI,
   sendTextMessage,
-  sendDayOptions,
   sendAppointmentOptions,
   insertBookingToSupabase,
   askForCancellationPhone,
@@ -58,36 +57,18 @@ async function handleInteractiveMessage(message, from, tempBookings) {
 
   console.log("🔘 Interactive message received:", { from, id, type: itype });
 
-  // ========== DAY BUTTON ==========
-  if (id?.startsWith("day_")) {
-    const day = id.replace("day_", "");
-    tempBookings[from] = { day };
-
-    console.log("📅 Day selected:", day);
-    await sendTextMessage(from, `👍 تم اختيار يوم ${day}! الآن اختر الموعد:`);
-    await sendAppointmentOptions(from);
-    return;
-  }
-
   // ========== APPOINTMENT BUTTON ==========
   if (id?.startsWith("slot_")) {
-    const time = id.replace("slot_", "").toUpperCase();
-
-    if (!tempBookings[from] || !tempBookings[from].day) {
-      await sendTextMessage(from, "⚠️ يجب اختيار اليوم أولاً.");
-      await sendDayOptions(from);
-      return;
-    }
-
-    // Combine day + time into appointment
-    tempBookings[from].appointment = `${tempBookings[from].day} - ${time}`;
+    const appointment = id.replace("slot_", "").toUpperCase();
+    tempBookings[from] = { appointment };
 
     await sendTextMessage(from, "👍 تم اختيار الموعد! الآن أرسل اسمك:");
     return;
   }
 
-  // ========== SERVICE BUTTON ==========
+  // ========== SERVICE BUTTON (FIXED) ==========
   if (id?.startsWith("service_")) {
+    // ✅ FIXED: Just remove "service_" prefix, keep the Arabic text as-is
     const serviceName = id.replace("service_", "");
 
     console.log("💊 Service selected:", serviceName);
@@ -176,6 +157,15 @@ async function handleTextMessage(text, from, tempBookings) {
    * ---------------------------------------------
    */
 
+  // Quick shortcut (3,6,9 → PM)
+  if (!tempBookings[from] && ["3", "6", "9"].includes(text)) {
+    const appointment = `${text} PM`;
+    tempBookings[from] = { appointment };
+
+    await sendTextMessage(from, "👍 تم اختيار الموعد! الآن أرسل اسمك:");
+    return;
+  }
+
   // NAME STEP
   if (tempBookings[from] && !tempBookings[from].name) {
     await handleNameStep(text, from, tempBookings);
@@ -196,7 +186,7 @@ async function handleTextMessage(text, from, tempBookings) {
 
   // User wants to start booking
   if (!tempBookings[from] && isBookingRequest(text)) {
-    await sendDayOptions(from);
+    await sendAppointmentOptions(from);
     return;
   }
 
