@@ -104,15 +104,15 @@
     </div>
 
     <script>
-      // ✅ Supabase Client
-      const supabase = window.supabase.createClient(
+      // ✅ Supabase Client (اسم آمن بدون تعارض)
+      const supabaseClient = window.supabase.createClient(
         "https://ylsbmxedhycjqaorjkvm.supabase.co",
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc2JteGVkaHljanFhb3Jqa3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTk5NTUsImV4cCI6MjA3NjM5NTk1NX0.W61xOww2neu6RA4yCJUob66p4OfYcgLSVw3m3yttz1E",
       );
 
       // ✅ Load settings on page load
       async function loadSettings() {
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
           .from("clinic_settings")
           .select("*")
           .eq("clinic_id", "default")
@@ -156,7 +156,7 @@
           offers_en: offers_en.value,
         };
 
-        const { error } = await supabase
+        const { error } = await supabaseClient
           .from("clinic_settings")
           .update(payload)
           .eq("clinic_id", "default");
@@ -169,6 +169,7 @@
         }
       }
 
+      // 🔹 Load on startup
       loadSettings();
     </script>
   </body>
