@@ -12,7 +12,6 @@
     />
     <link rel="stylesheet" href="./dashboard.css" />
 
-    <!-- ✅ SAME STYLE FROM AIsettings.html -->
     <style>
       .settings-container {
         padding: 30px;
@@ -53,7 +52,8 @@
       }
 
       select,
-      input[type="number"] {
+      input[type="number"],
+      input[type="text"] {
         padding: 8px 12px;
         border-radius: 8px;
         border: 1px solid #ccc;
@@ -64,7 +64,8 @@
       }
 
       body.dark select,
-      body.dark input[type="number"] {
+      body.dark input[type="number"],
+      body.dark input[type="text"] {
         background: #3a3a3a;
         color: #fff;
         border-color: #555;
@@ -122,7 +123,6 @@
         color: #aaa;
       }
 
-      /* Small helper text */
       .hint {
         font-size: 13px;
         color: #888;
@@ -190,7 +190,6 @@
             الحملات الاعلانية
           </a>
 
-          <!-- ✅ NEW TAB -->
           <a href="messageTiming.html" class="active">
             <i class="fa-solid fa-clock"></i>
             التوقيت بين الرسائل
@@ -291,7 +290,7 @@
             حفظ الإعدادات
           </button>
 
-          <!-- ✅ TEST SEND CARD -->
+          <!-- TEST SEND CARD -->
           <div class="setting-card">
             <div class="setting-info">
               <h4>إرسال رسالة اختبار</h4>
@@ -335,7 +334,7 @@
             </div>
           </div>
 
-          <!-- ✅ OPTIONAL DEBUG BOX (recommended) -->
+          <!-- DEBUG BOX -->
           <div
             class="setting-card"
             style="flex-direction: column; align-items: stretch"
@@ -449,9 +448,7 @@
         });
       }
 
-      // =========================================================
-      // ✅ WHATSAPP-SAFE TIMING SETTINGS (Human-like)
-      // =========================================================
+      // ===== TIMING SETTINGS =====
       const msgDelayToggle = document.getElementById("msgDelayToggle");
       const msgDelayMin = document.getElementById("msgDelayMin");
       const msgDelayMax = document.getElementById("msgDelayMax");
@@ -463,19 +460,15 @@
         msgDelayMin: 6,
         msgDelayMax: 28,
         msgDelayMode: "random",
-
         typingEnabled: true,
         charsPerSecondMin: 3.2,
         charsPerSecondMax: 6.0,
         typingMaxExtraSec: 40,
-
         jitterSec: 2.5,
-
         cooldownEnabled: true,
         cooldownEvery: 12,
         cooldownMinSec: 45,
         cooldownMaxSec: 160,
-
         sentCounterKey: "msgDelay_sentCounter",
       };
 
@@ -533,7 +526,6 @@
           localStorage.setItem("msgDelayMax", String(finalMax));
           localStorage.setItem("msgDelayMode", msgDelayMode?.value || "random");
 
-          // advanced defaults saved too
           localStorage.setItem(
             "msgDelay_typingEnabled",
             String(DEFAULTS.typingEnabled),
@@ -679,9 +671,7 @@
         if (d > 0) await sleep(d);
       }
 
-      // ===============================
-      // ✅ SAFE LOG (won't crash)
-      // ===============================
+      // ===== DEBUG LOG =====
       function addDebugLog(message, type = "info") {
         const debug = document.getElementById("debugContent");
         const time = new Date().toLocaleTimeString("ar-EG");
@@ -694,10 +684,7 @@
         debug.scrollTop = debug.scrollHeight;
       }
 
-      // ===============================
-      // ✅ SEND SINGLE WHATSAPP MESSAGE
-      // (uses timing + endpoint)
-      // ===============================
+      // ===== SEND WHATSAPP MESSAGE (FIXED) =====
       async function sendWhatsAppMessage(phone, messageText, imageUrl) {
         try {
           addDebugLog(
@@ -705,28 +692,33 @@
           );
           await applyHumanDelay(messageText);
 
+          const PHONE_NUMBER_ID = "112887458534900";
+          const TOKEN =
+            "EAAM2ahtGe0cBQqRkJWh4WfMgZClNtPopZC7lkrZALbLQyfMuQvbWTRl97IkSdegYq6bOyCwrqcCcxMkbXWmJaxBR4lJIlwSz23ge14QR5cCZC1B3CnqTRGiSrilOV7DJZCZBZCC7hz8TUj5oiQC6nO8mHZBfcoEsxnKAiZAqNdMZBYi7ZAH7Yk9s4yLqOnu3HftH4kXk1gZBqDXa4wimO1oiCJ5FibWFZAM8gmgZAAjh1BLjGqiZCipSCG3v0PovfjNjVQ8RRZBCFFxX2cykbVZCQYHCBXPmKJhAvGhz4ucJVpLFl7wZDZD";
+
+          const url = `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`;
+
           const payload = {
-            name: "Smile Clinic",
-            phone,
-            service: "رسالة اختبار (Timing Page)",
-            appointment: messageText,
-            image: imageUrl || null,
+            messaging_product: "whatsapp",
+            to: phone,
+            type: "text",
+            text: { body: messageText },
           };
 
           addDebugLog(`📤 إرسال رسالة إلى ${phone}...`);
 
-          const res = await fetch(
-            "https://whatsapp-cloud-webhook-woad.vercel.app/api/whatsapp",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
+          const res = await fetch(url, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${TOKEN}`,
+              "Content-Type": "application/json",
             },
-          );
+            body: JSON.stringify(payload),
+          });
 
           const data = await res.json();
 
-          if (data.success) {
+          if (res.ok && data.messages) {
             addDebugLog(`✅ تم إرسال رسالة إلى ${phone} بنجاح`, "success");
             return true;
           } else {
@@ -739,9 +731,7 @@
         }
       }
 
-      // ===============================
-      // ✅ SEND TEST BUTTON HANDLER
-      // ===============================
+      // ===== SEND TEST BUTTON =====
       const sendTestBtn = document.getElementById("sendTestBtn");
       if (sendTestBtn) {
         sendTestBtn.addEventListener("click", async () => {
@@ -773,17 +763,15 @@
         });
       }
 
-      // expose if needed
+      // Expose functions
       window.sendWhatsAppMessage = sendWhatsAppMessage;
-
-      // expose
       window.getHumanDelayMs = getHumanDelayMs;
       window.applyHumanDelay = applyHumanDelay;
       window.logout = logout;
       window.login = login;
     </script>
     <script>
-      // ✅ Auto-fill test number
+      // Auto-fill test number
       document.addEventListener("DOMContentLoaded", () => {
         const phoneInput = document.getElementById("testPhone");
         if (phoneInput) {
