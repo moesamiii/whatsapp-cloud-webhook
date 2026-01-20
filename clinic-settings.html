@@ -24,84 +24,110 @@
 
       body {
         font-family: "Cairo", sans-serif;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #345d9d 0%, #2a4a7c 100%);
         min-height: 100vh;
         padding: 40px 20px;
       }
 
       .settings-container {
-        max-width: 800px;
+        max-width: 900px;
         margin: 0 auto;
       }
 
       .settings-header {
-        background: white;
-        padding: 30px;
-        border-radius: 16px 16px 0 0;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+        padding: 40px 35px;
+        border-radius: 20px 20px 0 0;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
         text-align: center;
         position: relative;
+        border-bottom: 3px solid #345d9d;
       }
 
       .back-btn {
         position: absolute;
-        top: 30px;
-        right: 30px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        border: none;
-        padding: 10px 20px;
+        top: 25px;
+        right: 25px;
+        background: white;
+        color: #345d9d;
+        border: 2px solid #345d9d;
+        padding: 12px 24px;
         border-radius: 50px;
         font-size: 14px;
-        font-weight: 600;
+        font-weight: 700;
         font-family: "Cairo", sans-serif;
         cursor: pointer;
         transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
         text-decoration: none;
         display: inline-flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
+        box-shadow: 0 4px 15px rgba(52, 93, 157, 0.15);
       }
 
       .back-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+        background: linear-gradient(135deg, #345d9d 0%, #2a4a7c 100%);
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(52, 93, 157, 0.35);
       }
 
       .back-btn i {
         font-size: 16px;
+        transition: transform 0.3s ease;
       }
 
-      .settings-header i {
-        font-size: 48px;
-        color: #667eea;
-        margin-bottom: 15px;
-        display: block;
+      .back-btn:hover i {
+        transform: translateX(5px);
+      }
+
+      .settings-header .header-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, #345d9d 0%, #2a4a7c 100%);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 20px;
+        box-shadow: 0 8px 24px rgba(52, 93, 157, 0.3);
+        transform: rotate(-5deg);
+        transition: all 0.3s ease;
+      }
+
+      .settings-header .header-icon:hover {
+        transform: rotate(0deg) scale(1.05);
+      }
+
+      .settings-header .header-icon i {
+        font-size: 40px;
+        color: white;
       }
 
       .settings-header h2 {
-        font-size: 28px;
+        font-size: 32px;
         color: #2d3748;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
+        font-weight: 700;
       }
 
       .settings-header p {
         color: #718096;
-        font-size: 15px;
+        font-size: 16px;
+        font-weight: 500;
       }
 
       .settings-card {
         background: white;
-        padding: 40px;
-        border-radius: 0 0 16px 16px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        padding: 45px;
+        border-radius: 0 0 20px 20px;
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.18);
       }
 
       .form-section {
-        margin-bottom: 35px;
-        padding-bottom: 30px;
-        border-bottom: 2px solid #f7fafc;
+        margin-bottom: 40px;
+        padding-bottom: 35px;
+        border-bottom: 2px solid #e8ecf7;
       }
 
       .form-section:last-child {
@@ -110,89 +136,132 @@
       }
 
       .section-title {
-        font-size: 18px;
-        color: #667eea;
-        margin-bottom: 20px;
+        font-size: 20px;
+        color: #345d9d;
+        margin-bottom: 25px;
         font-weight: 700;
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
+        padding-bottom: 15px;
+        border-bottom: 3px solid #f0f4ff;
       }
 
       .section-title i {
-        font-size: 20px;
+        font-size: 24px;
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, #f0f4ff 0%, #e8ecf7 100%);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
 
       .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 24px;
       }
 
       .form-group label {
         display: block;
-        margin-bottom: 8px;
-        font-weight: 600;
-        color: #4a5568;
-        font-size: 14px;
+        margin-bottom: 10px;
+        font-weight: 700;
+        color: #2d3748;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .form-group label::before {
+        content: "•";
+        color: #345d9d;
+        font-size: 20px;
       }
 
       .form-group input,
       .form-group textarea {
         width: 100%;
-        padding: 14px 16px;
-        border-radius: 10px;
+        padding: 16px 20px;
+        border-radius: 12px;
         border: 2px solid #e2e8f0;
         font-size: 15px;
         font-family: "Cairo", sans-serif;
         transition: all 0.3s ease;
-        background: #f7fafc;
+        background: #f8fafc;
+        font-weight: 500;
       }
 
       .form-group input:focus,
       .form-group textarea:focus {
         outline: none;
-        border-color: #667eea;
+        border-color: #345d9d;
         background: white;
-        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        box-shadow: 0 0 0 5px rgba(52, 93, 157, 0.08);
+        transform: translateY(-2px);
       }
 
       .form-group textarea {
-        min-height: 100px;
+        min-height: 120px;
         resize: vertical;
       }
 
       .form-row {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 20px;
+        gap: 25px;
       }
 
       .save-btn {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #28a745 0%, #20893a 100%);
         color: white;
         border: none;
-        padding: 16px 40px;
+        padding: 18px 50px;
         cursor: pointer;
-        border-radius: 50px;
-        font-size: 16px;
+        border-radius: 60px;
+        font-size: 18px;
         font-weight: 700;
         font-family: "Cairo", sans-serif;
         width: 100%;
-        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 8px 28px rgba(40, 167, 69, 0.4);
         transition: all 0.3s ease;
-        margin-top: 20px;
+        margin-top: 25px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .save-btn::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition:
+          width 0.6s,
+          height 0.6s;
+      }
+
+      .save-btn:hover::before {
+        width: 400px;
+        height: 400px;
       }
 
       .save-btn:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 36px rgba(40, 167, 69, 0.5);
       }
 
       .save-btn:active {
-        transform: translateY(0);
+        transform: translateY(-1px);
       }
 
       .save-btn i {
-        margin-left: 8px;
+        margin-left: 10px;
+        font-size: 20px;
       }
 
       @media (max-width: 768px) {
@@ -201,14 +270,14 @@
         }
 
         .settings-header {
-          padding: 25px 20px;
-          padding-top: 70px;
+          padding: 30px 20px;
+          padding-top: 80px;
         }
 
         .back-btn {
           top: 20px;
           right: 20px;
-          padding: 8px 16px;
+          padding: 10px 18px;
           font-size: 13px;
         }
 
@@ -220,26 +289,45 @@
           margin: 0;
         }
 
+        .settings-header .header-icon {
+          width: 70px;
+          height: 70px;
+        }
+
+        .settings-header .header-icon i {
+          font-size: 35px;
+        }
+
         .settings-header h2 {
-          font-size: 24px;
+          font-size: 26px;
+        }
+
+        .settings-header p {
+          font-size: 14px;
         }
 
         .settings-card {
-          padding: 25px 20px;
+          padding: 30px 20px;
         }
 
         .form-row {
           grid-template-columns: 1fr;
-          gap: 15px;
+          gap: 20px;
         }
 
         .section-title {
-          font-size: 16px;
+          font-size: 18px;
+        }
+
+        .section-title i {
+          font-size: 20px;
+          width: 36px;
+          height: 36px;
         }
 
         .save-btn {
-          padding: 14px 30px;
-          font-size: 15px;
+          padding: 16px 40px;
+          font-size: 16px;
         }
       }
 
@@ -247,18 +335,18 @@
       .save-btn.loading {
         position: relative;
         pointer-events: none;
-        opacity: 0.7;
+        opacity: 0.8;
       }
 
       .save-btn.loading::after {
         content: "";
         position: absolute;
-        width: 16px;
-        height: 16px;
+        width: 20px;
+        height: 20px;
         top: 50%;
-        right: 20px;
-        margin-top: -8px;
-        border: 2px solid white;
+        right: 30px;
+        margin-top: -10px;
+        border: 3px solid white;
         border-radius: 50%;
         border-top-color: transparent;
         animation: spin 0.6s linear infinite;
@@ -268,6 +356,22 @@
         to {
           transform: rotate(360deg);
         }
+      }
+
+      /* Smooth page entrance */
+      @keyframes fadeInUp {
+        from {
+          opacity: 0;
+          transform: translateY(30px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .settings-container {
+        animation: fadeInUp 0.6s ease;
       }
     </style>
   </head>
@@ -279,7 +383,9 @@
           <i class="fa-solid fa-arrow-left"></i>
           <span>العودة إلى لوحة القيادة</span>
         </a>
-        <i class="fa-solid fa-hospital"></i>
+        <div class="header-icon">
+          <i class="fa-solid fa-hospital"></i>
+        </div>
         <h2>إعدادات العيادة</h2>
         <p>قم بتحديث معلومات عيادتك وإعدادات النظام</p>
       </div>
