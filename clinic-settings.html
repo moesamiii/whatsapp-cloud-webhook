@@ -18,6 +18,17 @@
         background: var(--card-bg, #fff);
         padding: 30px;
         border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      }
+
+      .settings-card h2 {
+        margin-bottom: 20px;
+      }
+
+      .settings-card label {
+        display: block;
+        margin-top: 12px;
+        font-weight: bold;
       }
 
       .settings-card input,
@@ -25,6 +36,13 @@
         width: 100%;
         padding: 10px;
         margin: 6px 0 16px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+      }
+
+      .settings-card textarea {
+        min-height: 80px;
       }
 
       .settings-card button {
@@ -33,6 +51,12 @@
         border: none;
         padding: 12px 24px;
         cursor: pointer;
+        border-radius: 6px;
+        font-size: 15px;
+      }
+
+      .settings-card button:hover {
+        opacity: 0.9;
       }
     </style>
   </head>
@@ -80,31 +104,40 @@
     </div>
 
     <script>
+      // ✅ Supabase Client
       const supabase = window.supabase.createClient(
         "https://ylsbmxedhycjqaorjkvm.supabase.co",
-        "YOUR_ANON_KEY_HERE",
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc2JteGVkaHljanFhb3Jqa3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTk5NTUsImV4cCI6MjA3NjM5NTk1NX0.W61xOww2neu6RA4yCJUob66p4OfYcgLSVw3m3yttz1E",
       );
 
+      // ✅ Load settings on page load
       async function loadSettings() {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from("clinic_settings")
           .select("*")
           .eq("clinic_id", "default")
           .single();
 
-        clinic_name.value = data.clinic_name;
-        working_hours_ar.value = data.working_hours_ar;
-        working_hours_en.value = data.working_hours_en;
-        price_ar.value = data.price_ar;
-        price_en.value = data.price_en;
-        location_ar.value = data.location_ar;
-        location_en.value = data.location_en;
-        booking_times.value = data.booking_times.join(", ");
-        offers_enabled.checked = data.offers_enabled;
-        offers_ar.value = data.offers_ar;
-        offers_en.value = data.offers_en;
+        if (error) {
+          alert("❌ فشل تحميل الإعدادات");
+          console.error(error);
+          return;
+        }
+
+        clinic_name.value = data.clinic_name || "";
+        working_hours_ar.value = data.working_hours_ar || "";
+        working_hours_en.value = data.working_hours_en || "";
+        price_ar.value = data.price_ar || "";
+        price_en.value = data.price_en || "";
+        location_ar.value = data.location_ar || "";
+        location_en.value = data.location_en || "";
+        booking_times.value = (data.booking_times || []).join(", ");
+        offers_enabled.checked = data.offers_enabled || false;
+        offers_ar.value = data.offers_ar || "";
+        offers_en.value = data.offers_en || "";
       }
 
+      // ✅ Save settings
       async function saveSettings() {
         const payload = {
           clinic_name: clinic_name.value,
@@ -114,18 +147,26 @@
           price_en: price_en.value,
           location_ar: location_ar.value,
           location_en: location_en.value,
-          booking_times: booking_times.value.split(",").map((t) => t.trim()),
+          booking_times: booking_times.value
+            .split(",")
+            .map((t) => t.trim())
+            .filter(Boolean),
           offers_enabled: offers_enabled.checked,
           offers_ar: offers_ar.value,
           offers_en: offers_en.value,
         };
 
-        await supabase
+        const { error } = await supabase
           .from("clinic_settings")
           .update(payload)
           .eq("clinic_id", "default");
 
-        alert("✅ تم حفظ الإعدادات");
+        if (error) {
+          alert("❌ خطأ أثناء الحفظ");
+          console.error(error);
+        } else {
+          alert("✅ تم حفظ الإعدادات بنجاح");
+        }
       }
 
       loadSettings();
