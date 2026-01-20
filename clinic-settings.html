@@ -8,99 +8,342 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
     />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
     <link rel="stylesheet" href="./dashboard.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <style>
-      .settings-card {
-        max-width: 700px;
-        margin: 40px auto;
-        background: var(--card-bg, #fff);
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Cairo", sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 40px 20px;
+      }
+
+      .settings-container {
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      .settings-header {
+        background: white;
         padding: 30px;
-        border-radius: 12px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        border-radius: 16px 16px 0 0;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        text-align: center;
       }
 
-      .settings-card h2 {
-        margin-bottom: 20px;
-      }
-
-      .settings-card label {
+      .settings-header i {
+        font-size: 48px;
+        color: #667eea;
+        margin-bottom: 15px;
         display: block;
-        margin-top: 12px;
-        font-weight: bold;
       }
 
-      .settings-card input,
-      .settings-card textarea {
-        width: 100%;
-        padding: 10px;
-        margin: 6px 0 16px;
-        border-radius: 6px;
-        border: 1px solid #ccc;
-        font-size: 14px;
+      .settings-header h2 {
+        font-size: 28px;
+        color: #2d3748;
+        margin-bottom: 10px;
       }
 
-      .settings-card textarea {
-        min-height: 80px;
-      }
-
-      .settings-card button {
-        background: #7c3aed;
-        color: #fff;
-        border: none;
-        padding: 12px 24px;
-        cursor: pointer;
-        border-radius: 6px;
+      .settings-header p {
+        color: #718096;
         font-size: 15px;
       }
 
-      .settings-card button:hover {
-        opacity: 0.9;
+      .settings-card {
+        background: white;
+        padding: 40px;
+        border-radius: 0 0 16px 16px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+      }
+
+      .form-section {
+        margin-bottom: 35px;
+        padding-bottom: 30px;
+        border-bottom: 2px solid #f7fafc;
+      }
+
+      .form-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+      }
+
+      .section-title {
+        font-size: 18px;
+        color: #667eea;
+        margin-bottom: 20px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .section-title i {
+        font-size: 20px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: #4a5568;
+        font-size: 14px;
+      }
+
+      .form-group input,
+      .form-group textarea {
+        width: 100%;
+        padding: 14px 16px;
+        border-radius: 10px;
+        border: 2px solid #e2e8f0;
+        font-size: 15px;
+        font-family: "Cairo", sans-serif;
+        transition: all 0.3s ease;
+        background: #f7fafc;
+      }
+
+      .form-group input:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: #667eea;
+        background: white;
+        box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+      }
+
+      .form-group textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .save-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 16px 40px;
+        cursor: pointer;
+        border-radius: 50px;
+        font-size: 16px;
+        font-weight: 700;
+        font-family: "Cairo", sans-serif;
+        width: 100%;
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        transition: all 0.3s ease;
+        margin-top: 20px;
+      }
+
+      .save-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+      }
+
+      .save-btn:active {
+        transform: translateY(0);
+      }
+
+      .save-btn i {
+        margin-left: 8px;
+      }
+
+      @media (max-width: 768px) {
+        body {
+          padding: 20px 15px;
+        }
+
+        .settings-header {
+          padding: 25px 20px;
+        }
+
+        .settings-header h2 {
+          font-size: 24px;
+        }
+
+        .settings-card {
+          padding: 25px 20px;
+        }
+
+        .form-row {
+          grid-template-columns: 1fr;
+          gap: 15px;
+        }
+
+        .section-title {
+          font-size: 16px;
+        }
+
+        .save-btn {
+          padding: 14px 30px;
+          font-size: 15px;
+        }
+      }
+
+      /* Loading Animation */
+      .save-btn.loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.7;
+      }
+
+      .save-btn.loading::after {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        top: 50%;
+        right: 20px;
+        margin-top: -8px;
+        border: 2px solid white;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 0.6s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
       }
     </style>
   </head>
 
   <body>
-    <div class="settings-card">
-      <h2><i class="fa-solid fa-gear"></i> إعدادات العيادة</h2>
+    <div class="settings-container">
+      <div class="settings-header">
+        <i class="fa-solid fa-hospital"></i>
+        <h2>إعدادات العيادة</h2>
+        <p>قم بتحديث معلومات عيادتك وإعدادات النظام</p>
+      </div>
 
-      <label>اسم العيادة</label>
-      <input id="clinic_name" />
+      <div class="settings-card">
+        <!-- Basic Info Section -->
+        <div class="form-section">
+          <div class="section-title">
+            <i class="fa-solid fa-building"></i>
+            <span>المعلومات الأساسية</span>
+          </div>
 
-      <label>أوقات العمل (عربي)</label>
-      <input id="working_hours_ar" />
+          <div class="form-group">
+            <label>اسم العيادة</label>
+            <input id="clinic_name" placeholder="أدخل اسم العيادة" />
+          </div>
+        </div>
 
-      <label>Working Hours (EN)</label>
-      <input id="working_hours_en" />
+        <!-- Working Hours Section -->
+        <div class="form-section">
+          <div class="section-title">
+            <i class="fa-solid fa-clock"></i>
+            <span>أوقات العمل</span>
+          </div>
 
-      <label>السعر (عربي)</label>
-      <input id="price_ar" />
+          <div class="form-row">
+            <div class="form-group">
+              <label>أوقات العمل (عربي)</label>
+              <input
+                id="working_hours_ar"
+                placeholder="من 9 صباحاً إلى 9 مساءً"
+              />
+            </div>
+            <div class="form-group">
+              <label>Working Hours (EN)</label>
+              <input id="working_hours_en" placeholder="9 AM - 9 PM" />
+            </div>
+          </div>
 
-      <label>Price (EN)</label>
-      <input id="price_en" />
+          <div class="form-group">
+            <label>أوقات الحجز المتاحة (افصل بفاصلة)</label>
+            <input id="booking_times" placeholder="3 PM, 6 PM, 9 PM" />
+          </div>
+        </div>
 
-      <label>الموقع (عربي)</label>
-      <input id="location_ar" />
+        <!-- Pricing Section -->
+        <div class="form-section">
+          <div class="section-title">
+            <i class="fa-solid fa-money-bill"></i>
+            <span>الأسعار</span>
+          </div>
 
-      <label>Location (EN)</label>
-      <input id="location_en" />
+          <div class="form-row">
+            <div class="form-group">
+              <label>السعر (عربي)</label>
+              <input id="price_ar" placeholder="200 ريال" />
+            </div>
+            <div class="form-group">
+              <label>Price (EN)</label>
+              <input id="price_en" placeholder="200 SAR" />
+            </div>
+          </div>
+        </div>
 
-      <label>أوقات الحجز (افصل بفاصلة)</label>
-      <input id="booking_times" placeholder="3 PM, 6 PM, 9 PM" />
+        <!-- Location Section -->
+        <div class="form-section">
+          <div class="section-title">
+            <i class="fa-solid fa-location-dot"></i>
+            <span>الموقع</span>
+          </div>
 
-      <label>
-        <input type="checkbox" id="offers_enabled" />
-        تفعيل العروض
-      </label>
+          <div class="form-row">
+            <div class="form-group">
+              <label>الموقع (عربي)</label>
+              <input
+                id="location_ar"
+                placeholder="الرياض، المملكة العربية السعودية"
+              />
+            </div>
+            <div class="form-group">
+              <label>Location (EN)</label>
+              <input id="location_en" placeholder="Riyadh, Saudi Arabia" />
+            </div>
+          </div>
+        </div>
 
-      <label>نص العرض (عربي)</label>
-      <textarea id="offers_ar"></textarea>
+        <!-- Offers Section -->
+        <div class="form-section">
+          <div class="section-title">
+            <i class="fa-solid fa-tag"></i>
+            <span>العروض</span>
+          </div>
 
-      <label>Offer Text (EN)</label>
-      <textarea id="offers_en"></textarea>
+          <div class="form-group">
+            <label>نص العرض (عربي)</label>
+            <textarea
+              id="offers_ar"
+              placeholder="خصم 20% على جميع الخدمات..."
+            ></textarea>
+          </div>
 
-      <button onclick="saveSettings()">💾 حفظ الإعدادات</button>
+          <div class="form-group">
+            <label>Offer Text (EN)</label>
+            <textarea
+              id="offers_en"
+              placeholder="20% discount on all services..."
+            ></textarea>
+          </div>
+        </div>
+
+        <button class="save-btn" onclick="saveSettings()">
+          <i class="fa-solid fa-floppy-disk"></i>
+          حفظ الإعدادات
+        </button>
+      </div>
     </div>
 
     <script>
@@ -132,13 +375,15 @@
         location_ar.value = data.location_ar || "";
         location_en.value = data.location_en || "";
         booking_times.value = (data.booking_times || []).join(", ");
-        offers_enabled.checked = data.offers_enabled || false;
         offers_ar.value = data.offers_ar || "";
         offers_en.value = data.offers_en || "";
       }
 
       // ✅ Save settings
       async function saveSettings() {
+        const btn = document.querySelector(".save-btn");
+        btn.classList.add("loading");
+
         const payload = {
           clinic_name: clinic_name.value,
           working_hours_ar: working_hours_ar.value,
@@ -151,7 +396,6 @@
             .split(",")
             .map((t) => t.trim())
             .filter(Boolean),
-          offers_enabled: offers_enabled.checked,
           offers_ar: offers_ar.value,
           offers_en: offers_en.value,
         };
@@ -160,6 +404,8 @@
           .from("clinic_settings")
           .update(payload)
           .eq("clinic_id", "default");
+
+        btn.classList.remove("loading");
 
         if (error) {
           alert("❌ خطأ أثناء الحفظ");
