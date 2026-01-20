@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
@@ -562,7 +562,7 @@
     <div class="container">
       <aside class="sidebar" id="sidebar">
         <div class="logo">
-          <span>CONAN DASHBOARD</span>
+          <span id="sidebarClinicName">CLINIC DASHBOARD</span>
         </div>
         <nav class="menu">
           <a href="dashboard.html">
@@ -597,6 +597,11 @@
           <a href="offers.html" class="active">
             <i class="fa-solid fa-gift"></i>
             الحملات الاعلانية
+          </a>
+
+          <a href="clinic-settings.html">
+            <i class="fa-solid fa-gear"></i>
+            إعدادات العيادة
           </a>
         </nav>
       </aside>
@@ -661,13 +666,13 @@
                   type="text"
                   id="phoneInput"
                   placeholder="أدخل رقم الهاتف (مثال: 962781234567)"
-                  onkeypress="if(event.key === 'Enter') addPhoneNumber()"
+                  onkeypress="if (event.key === 'Enter') addPhoneNumber();"
                 />
                 <input
                   type="text"
                   id="phoneNameInput"
                   placeholder="اسم المستلم (اختياري)"
-                  onkeypress="if(event.key === 'Enter') addPhoneNumber()"
+                  onkeypress="if (event.key === 'Enter') addPhoneNumber();"
                 />
                 <button class="add-phone-btn" onclick="addPhoneNumber()">
                   <i class="fa-solid fa-plus"></i>
@@ -774,7 +779,7 @@
           </div>
         </section>
 
-        <footer>© 2025 Smile Clinic</footer>
+        <footer id="footerText">© 2025 Clinic</footer>
       </main>
     </div>
 
@@ -789,12 +794,56 @@
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc2JteGVkaHljanFhb3Jqa3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTk5NTUsImV4cCI6MjA3NjM5NTk1NX0.W61xOww2neu6RA4yCJUob66p4OfYcgLSVw3m3yttz1E";
       const supabaseClient = window.supabase.createClient(
         SUPABASE_URL,
-        SUPABASE_KEY
+        SUPABASE_KEY,
       );
+
+      // ✅ Global variable to store clinic settings
+      let clinicSettings = null;
 
       let selectedFiles = [];
       let recipientPhones = []; // Array to store phone numbers with names
       let allBookings = []; // Store all bookings for filtering
+
+      // ✅ Load clinic settings from database
+      async function loadClinicSettings() {
+        const { data, error } = await supabaseClient
+          .from("clinic_settings")
+          .select("*")
+          .eq("clinic_id", "default")
+          .single();
+
+        if (error) {
+          console.error("Error loading clinic settings:", error);
+          return;
+        }
+
+        clinicSettings = data;
+        applyClinicSettings();
+      }
+
+      // ✅ Apply clinic settings to the UI
+      function applyClinicSettings() {
+        if (!clinicSettings) return;
+
+        const clinicName = clinicSettings.clinic_name || "CLINIC DASHBOARD";
+
+        // Update sidebar logo
+        const sidebarClinicName = document.getElementById("sidebarClinicName");
+        if (sidebarClinicName) {
+          sidebarClinicName.textContent =
+            clinicName.toUpperCase() + " DASHBOARD";
+        }
+
+        // Update footer
+        const footerText = document.getElementById("footerText");
+        if (footerText) {
+          const currentYear = new Date().getFullYear();
+          footerText.textContent = `© ${currentYear} ${clinicName}`;
+        }
+
+        // Update page title
+        document.title = "إرسال العروض المخصصة - " + clinicName;
+      }
 
       // Show toast notification
       function showToast(message, type = "success") {
@@ -880,7 +929,7 @@
         });
 
         const sortedServices = Object.entries(serviceCounts).sort(
-          (a, b) => b[1] - a[1]
+          (a, b) => b[1] - a[1],
         );
 
         statsContainer.innerHTML = sortedServices
@@ -890,7 +939,7 @@
             ${service}
             <span class="count">${count}</span>
           </div>
-        `
+        `,
           )
           .join("");
       }
@@ -983,7 +1032,7 @@
               }
               <button class="remove-phone" onclick="removePhone(${index})">×</button>
             </div>
-          `
+          `,
             )
             .join("");
         }
@@ -1035,7 +1084,7 @@
             showToast(`تم إضافة ${addedCount} جهة اتصال`);
             addDebugLog(
               `تم تحميل ${addedCount} جهة اتصال (خدمة: ${serviceFilter}, حالة: ${statusFilter})`,
-              "success"
+              "success",
             );
           } else {
             showToast("لا توجد جهات اتصال جديدة للإضافة", "warning");
@@ -1103,7 +1152,7 @@
             showToast(`تم إضافة ${addedCount} جهة اتصال`);
             addDebugLog(
               `تم تحميل ${addedCount} جهة اتصال من جميع المصادر`,
-              "success"
+              "success",
             );
           } else {
             showToast("جميع جهات الاتصال موجودة مسبقاً", "warning");
@@ -1149,7 +1198,7 @@
             showToast(`تم إضافة ${addedCount} جهة اتصال`);
             addDebugLog(
               `تم تحميل ${addedCount} جهة اتصال من قائمة التواصل`,
-              "success"
+              "success",
             );
           } else {
             showToast("لا توجد جهات اتصال جديدة للإضافة", "warning");
@@ -1178,6 +1227,7 @@
           document.getElementById("loginScreen").style.display = "none";
           document.getElementById("dashboardContent").style.display = "block";
           localStorage.setItem("clinic_logged_in", "true");
+          loadClinicSettings(); // ✅ Load settings after login
           loadBookingsData(); // Load bookings after login
         } else {
           document.getElementById("errorMsg").style.display = "block";
@@ -1193,6 +1243,7 @@
       if (localStorage.getItem("clinic_logged_in") === "true") {
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("dashboardContent").style.display = "block";
+        loadClinicSettings(); // ✅ Load settings on startup
         loadBookingsData(); // Load bookings on page load
       }
 
@@ -1218,7 +1269,7 @@
       // 🖼️ Preview multiple images
       const offerImage = document.getElementById("offerImage");
       const imagesPreviewContainer = document.getElementById(
-        "imagesPreviewContainer"
+        "imagesPreviewContainer",
       );
 
       offerImage.addEventListener("change", () => {
@@ -1237,8 +1288,8 @@
             div.className = "image-preview-item";
             div.innerHTML = `
               <img src="${e.target.result}" class="image-preview" alt="صورة ${
-              index + 1
-            }">
+                index + 1
+              }">
               <button class="remove-image-btn" onclick="removeImage(${index})">×</button>
             `;
             imagesPreviewContainer.appendChild(div);
@@ -1284,17 +1335,20 @@
         } catch (err) {
           addDebugLog(
             `خطأ في رفع الصورة ${file.name}: ${err.message}`,
-            "error"
+            "error",
           );
           return null;
         }
       }
 
-      // 📤 Send single message with image
+      // 📤 Send single message with image - ✅ UPDATED to use dynamic clinic name
       async function sendWhatsAppMessage(phone, messageText, imageUrl) {
         try {
+          // ✅ Use dynamic clinic name from settings
+          const clinicNameForMessage = clinicSettings?.clinic_name || "Clinic";
+
           const payload = {
-            name: "Smile Clinic",
+            name: clinicNameForMessage,
             phone: phone,
             service: document.getElementById("offerTitle").value.trim(),
             appointment: messageText,
@@ -1309,7 +1363,7 @@
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(payload),
-            }
+            },
           );
 
           const data = await res.json();
@@ -1320,14 +1374,14 @@
           } else {
             addDebugLog(
               `فشل إرسال رسالة إلى ${phone}: ${JSON.stringify(data)}`,
-              "error"
+              "error",
             );
             return false;
           }
         } catch (err) {
           addDebugLog(
             `خطأ في إرسال الرسالة إلى ${phone}: ${err.message}`,
-            "error"
+            "error",
           );
           return false;
         }
@@ -1376,7 +1430,7 @@
 
             for (let i = 0; i < selectedFiles.length; i++) {
               updateProgress(
-                `جاري رفع الصورة ${i + 1} من ${selectedFiles.length}...`
+                `جاري رفع الصورة ${i + 1} من ${selectedFiles.length}...`,
               );
               const imageUrl = await uploadImage(selectedFiles[i]);
               if (imageUrl) {
@@ -1386,7 +1440,7 @@
 
             addDebugLog(
               `تم رفع ${uploadedImageUrls.length} صورة بنجاح`,
-              "success"
+              "success",
             );
           }
 
@@ -1396,7 +1450,7 @@
           for (let i = 0; i < recipientPhones.length; i++) {
             const recipient = recipientPhones[i];
             updateProgress(
-              `إرسال إلى ${recipient.name} (${i + 1}/${totalRecipients})...`
+              `إرسال إلى ${recipient.name} (${i + 1}/${totalRecipients})...`,
             );
 
             if (uploadedImageUrls.length === 0) {
@@ -1404,7 +1458,7 @@
               const success = await sendWhatsAppMessage(
                 recipient.phone,
                 messageText,
-                null
+                null,
               );
               if (success) totalSuccess++;
               else totalFail++;
@@ -1414,7 +1468,7 @@
                 const success = await sendWhatsAppMessage(
                   recipient.phone,
                   messageText,
-                  uploadedImageUrls[j]
+                  uploadedImageUrls[j],
                 );
                 if (success) totalSuccess++;
                 else totalFail++;
@@ -1434,12 +1488,12 @@
 
           addDebugLog(
             `✅ اكتمل الإرسال: ${totalSuccess} نجح، ${totalFail} فشل`,
-            "success"
+            "success",
           );
 
           if (totalSuccess > 0) {
             alert(
-              `✅ تم إرسال العرض بنجاح!\n📤 نجح: ${totalSuccess}\n❌ فشل: ${totalFail}`
+              `✅ تم إرسال العرض بنجاح!\n📤 نجح: ${totalSuccess}\n❌ فشل: ${totalFail}`,
             );
             clearForm();
           } else {
