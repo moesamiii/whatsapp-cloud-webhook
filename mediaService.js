@@ -13,17 +13,45 @@
 
 const axios = require("axios");
 const { sendTextMessage } = require("./helpers");
+const { createClient } = require("@supabase/supabase-js");
+
+// ✅ Initialize Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+);
+
+// ✅ Global variable to store clinic settings
+let clinicSettings = null;
+
+// ✅ Load clinic settings from database
+async function loadClinicSettings() {
+  try {
+    const { data, error } = await supabase
+      .from("clinic_settings")
+      .select("*")
+      .eq("clinic_id", "default")
+      .single();
+
+    if (error) {
+      console.error("❌ Error loading clinic settings:", error);
+      return;
+    }
+
+    clinicSettings = data;
+    console.log("✅ Clinic settings loaded:", clinicSettings?.clinic_name);
+  } catch (err) {
+    console.error("❌ Exception loading clinic settings:", err.message);
+  }
+}
+
+// ✅ Load settings on module initialization
+loadClinicSettings();
 
 // ---------------------------------------------
 // Import static media assets
 // ---------------------------------------------
-const {
-  CLINIC_NAME,
-  CLINIC_LOCATION_LINK,
-  OFFER_IMAGES,
-  DOCTOR_IMAGES,
-  DOCTOR_INFO,
-} = require("./mediaAssets");
+const { OFFER_IMAGES, DOCTOR_IMAGES, DOCTOR_INFO } = require("./mediaAssets");
 
 // ---------------------------------------------
 // Environment Variables
@@ -35,18 +63,24 @@ const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 // 📍 Send Location Message
 // ---------------------------------------------
 async function sendLocationMessages(to, language = "ar") {
-  await sendTextMessage(to, CLINIC_LOCATION_LINK);
+  // ✅ Get dynamic clinic name and location or use defaults
+  const clinicName = clinicSettings?.clinic_name || "Smiles Clinic";
+  const locationLink =
+    clinicSettings?.location_link ||
+    "https://www.google.com/maps?q=32.0290684,35.863774&z=17&hl=en";
+
+  await sendTextMessage(to, locationLink);
   await new Promise((r) => setTimeout(r, 500));
 
   if (language === "en") {
     await sendTextMessage(
       to,
-      `📍 This is our location at ${CLINIC_NAME}. You can open it in Google Maps 🗺️`,
+      `📍 This is our location at ${clinicName}. You can open it in Google Maps 🗺️`,
     );
   } else {
     await sendTextMessage(
       to,
-      `📍 هذا هو موقع ${CLINIC_NAME}. يمكنك الضغط على الرابط لفتحه في خرائط جوجل 🗺️`,
+      `📍 هذا هو موقع ${clinicName}. يمكنك الضغط على الرابط لفتحه في خرائط جوجل 🗺️`,
     );
   }
 }
