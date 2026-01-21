@@ -8,6 +8,41 @@
  * - Fallback to text if image fails
  */
 
+import { createClient } from "@supabase/supabase-js";
+
+// ✅ Initialize Supabase
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+);
+
+// ✅ Global variable to store clinic settings
+let clinicSettings = null;
+
+// ✅ Load clinic settings from database
+async function loadClinicSettings() {
+  try {
+    const { data, error } = await supabase
+      .from("clinic_settings")
+      .select("*")
+      .eq("clinic_id", "default")
+      .single();
+
+    if (error) {
+      console.error("❌ Error loading clinic settings:", error);
+      return;
+    }
+
+    clinicSettings = data;
+    console.log("✅ Clinic settings loaded:", clinicSettings?.clinic_name);
+  } catch (err) {
+    console.error("❌ Exception loading clinic settings:", err.message);
+  }
+}
+
+// ✅ Load settings on module initialization
+loadClinicSettings();
+
 async function sendWhatsApp(req, res) {
   // ✅ Enable CORS
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -28,8 +63,11 @@ async function sendWhatsApp(req, res) {
     return res.status(400).json({ error: "Missing name or phone" });
   }
 
+  // ✅ Get dynamic clinic name or use default
+  const clinicName = clinicSettings?.clinic_name || "Smile Clinic";
+
   const messageText = `👋 مرحبًا ${name}!
-تم حجز موعدك لخدمة ${service} في Smile Clinic 🦷
+تم حجز موعدك لخدمة ${service} في ${clinicName} 🦷
 📅 ${appointment}`;
 
   const url = `https://graph.facebook.com/v21.0/${process.env.PHONE_NUMBER_ID}/messages`;
