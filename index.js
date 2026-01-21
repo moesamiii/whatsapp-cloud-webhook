@@ -7,6 +7,41 @@ const app = express();
 app.use(express.json());
 
 // ==============================
+// 🔑 SUPABASE SETUP
+// ==============================
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY,
+);
+
+// ✅ Global variable to store clinic settings
+let clinicSettings = null;
+
+// ✅ Load clinic settings from database
+async function loadClinicSettings() {
+  try {
+    const { data, error } = await supabase
+      .from("clinic_settings")
+      .select("*")
+      .eq("clinic_id", "default")
+      .single();
+
+    if (error) {
+      console.error("❌ Error loading clinic settings:", error);
+      return;
+    }
+
+    clinicSettings = data;
+    console.log("✅ Clinic settings loaded:", clinicSettings?.clinic_name);
+  } catch (err) {
+    console.error("❌ Exception loading clinic settings:", err.message);
+  }
+}
+
+// ✅ Load settings on startup
+loadClinicSettings();
+
+// ==============================
 // 📸 DOCTOR DATA
 // ==============================
 const DOCTOR_IMAGES = [
@@ -155,14 +190,6 @@ setInterval(() => {
   }
 }, 120000); // 2 minutes
 
-// ==============================
-// 🔑 SUPABASE SETUP
-// ==============================
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-);
-
 async function insertBookingToSupabase(booking) {
   try {
     await supabase.from("bookings").insert([
@@ -238,10 +265,13 @@ async function askAI(userMessage) {
   try {
     const lang = detectLanguage(userMessage);
 
+    // ✅ Get dynamic clinic name or use default
+    const clinicName = clinicSettings?.clinic_name || "عيادة ابتسامة";
+
     const systemPrompt =
       lang === "ar"
-        ? `أنت موظف خدمة عملاء في عيادة ابتسامة. لا تبدأ الحجز إلا إذا طلب المستخدم ذلك صراحة.`
-        : `You are a clinic assistant. Do not start booking unless user asks explicitly.`;
+        ? `أنت موظف خدمة عملاء في ${clinicName}. لا تبدأ الحجز إلا إذا طلب المستخدم ذلك صراحة.`
+        : `You are a clinic assistant at ${clinicName}. Do not start booking unless user asks explicitly.`;
 
     const completion = await client.chat.completions.create({
       model: "llama-3.3-70b-versatile",
@@ -307,6 +337,22 @@ async function sendDoctorInfo(to) {
 }
 
 async function sendAppointmentOptions(to) {
+  // ✅ Get dynamic booking times or use defaults
+  const bookingTimes = clinicSettings?.booking_times || [
+    "3 PM",
+    "6 PM",
+    "9 PM",
+  ];
+
+  // ✅ Build buttons dynamically from database settings
+  const buttons = bookingTimes.slice(0, 3).map((time) => ({
+    type: "reply",
+    reply: {
+      id: `slot_${time.toLowerCase().replace(/\s/g, "")}`,
+      title: time,
+    },
+  }));
+
   await axios.post(
     `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`,
     {
@@ -316,13 +362,7 @@ async function sendAppointmentOptions(to) {
       interactive: {
         type: "button",
         body: { text: "📅 اختر الموعد المناسب لك:" },
-        action: {
-          buttons: [
-            { type: "reply", reply: { id: "slot_3pm", title: "3 PM" } },
-            { type: "reply", reply: { id: "slot_6pm", title: "6 PM" } },
-            { type: "reply", reply: { id: "slot_9pm", title: "9 PM" } },
-          ],
-        },
+        action: { buttons },
       },
     },
     { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } },
@@ -474,10 +514,14 @@ app.post("/webhook", async (req, res) => {
         delete cancelSessions[from];
 
         const lang = detectLanguage(text);
+        const clinicName =
+          clinicSettings?.clinic_name ||
+          (lang === "ar" ? "عيادة ابتسامة" : "Ibtisama Clinic");
+
         const greeting =
           lang === "ar"
-            ? "👋 مرحباً بك في عيادة ابتسامة!\n\nكيف يمكنني مساعدتك اليوم؟"
-            : "👋 Hello! Welcome to Ibtisama Clinic!\n\nHow can I help you today?";
+            ? `👋 مرحباً بك في ${clinicName}!\n\nكيف يمكنني مساعدتك اليوم؟`
+            : `👋 Hello! Welcome to ${clinicName}!\n\nHow can I help you today?`;
 
         await sendTextMessage(from, greeting);
         markMessageProcessed(from, messageId);
