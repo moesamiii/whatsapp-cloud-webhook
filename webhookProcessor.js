@@ -1,9 +1,10 @@
 /**
  * webhookProcessor.js
- * VOICE-ENABLED VERSION
+ * VOICE-ENABLED VERSION - FIXED
  */
 import axios from "axios";
 import FormData from "form-data";
+import Groq from "groq-sdk";
 import {
   transcribeAudio,
   sendLocationMessages,
@@ -20,60 +21,82 @@ const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 const VOICE_ID = "yXEnnEln9armDCyhkXcA";
+
+// 🤖 Initialize Groq client
+const groqClient = new Groq({
+  apiKey: GROQ_API_KEY,
+});
 
 // 🎙️ Generate Voice
 async function generateVoice(text) {
-  const response = await axios.post(
-    `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
-    {
-      text,
-      model_id: "eleven_multilingual_v2",
-      voice_settings: { stability: 0.5, similarity_boost: 0.75 },
-    },
-    {
-      headers: {
-        "xi-api-key": ELEVENLABS_API_KEY,
-        "Content-Type": "application/json",
-        Accept: "audio/ogg",
+  try {
+    console.log(`🎤 Generating voice: "${text.substring(0, 50)}..."`);
+
+    const response = await axios.post(
+      `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
+      {
+        text,
+        model_id: "eleven_multilingual_v2",
+        voice_settings: { stability: 0.5, similarity_boost: 0.75 },
       },
-      responseType: "arraybuffer",
-    },
-  );
-  return Buffer.from(response.data);
+      {
+        headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
+          "Content-Type": "application/json",
+          Accept: "audio/ogg",
+        },
+        responseType: "arraybuffer",
+      },
+    );
+    return Buffer.from(response.data);
+  } catch (error) {
+    console.error("❌ Voice generation error:", error.message);
+    throw error;
+  }
 }
 
 // 🎧 Send Voice Message
 async function sendVoiceMessage(to, audioBuffer) {
-  const form = new FormData();
-  form.append("file", audioBuffer, {
-    filename: "reply.ogg",
-    contentType: "audio/ogg",
-  });
-  form.append("messaging_product", "whatsapp");
-  form.append("type", "audio");
+  try {
+    console.log(`🎧 Sending voice message to ${to}`);
 
-  const uploadRes = await axios.post(
-    `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/media`,
-    form,
-    {
-      headers: {
-        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-        ...form.getHeaders(),
+    const form = new FormData();
+    form.append("file", audioBuffer, {
+      filename: "reply.ogg",
+      contentType: "audio/ogg",
+    });
+    form.append("messaging_product", "whatsapp");
+    form.append("type", "audio");
+
+    const uploadRes = await axios.post(
+      `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/media`,
+      form,
+      {
+        headers: {
+          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+          ...form.getHeaders(),
+        },
       },
-    },
-  );
+    );
 
-  await axios.post(
-    `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`,
-    {
-      messaging_product: "whatsapp",
-      to,
-      type: "audio",
-      audio: { id: uploadRes.data.id, voice: true },
-    },
-    { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } },
-  );
+    await axios.post(
+      `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`,
+      {
+        messaging_product: "whatsapp",
+        to,
+        type: "audio",
+        audio: { id: uploadRes.data.id, voice: true },
+      },
+      { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } },
+    );
+
+    console.log("✅ Voice message sent successfully");
+  } catch (error) {
+    console.error("❌ Voice sending error:", error.message);
+    throw error;
+  }
 }
 
 // 💬 Send Text Message
@@ -85,51 +108,50 @@ async function sendTextMessage(to, text) {
   );
 }
 
-// 🧠 AI Helpers
+// 🧠 AI Helper using Groq
 async function askAI(question) {
-  const response = await axios.post(
-    "https://api.anthropic.com/v1/messages",
-    {
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 1024,
+  try {
+    console.log(`🤖 Asking AI: "${question.substring(0, 50)}..."`);
+
+    const completion = await groqClient.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
       messages: [
         {
-          role: "user",
-          content: `أنت مساعد عيادة Glow Clinic. أجب بإيجاز:\n${question}`,
+          role: "system",
+          content:
+            "أنت موظف خدمة عملاء لعيادة Glow Clinic. رد فقط على الأسئلة المتعلقة بالمواعيد، الأسعار، الموقع، والحجز. رد بإيجاز وبالعربية فقط.",
         },
+        { role: "user", content: question },
       ],
-    },
-    {
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-    },
-  );
-  return response.data.content[0].text;
+    });
+
+    const answer = completion.choices[0]?.message?.content || "عذراً، لم أفهم.";
+    console.log(`✅ AI response: "${answer.substring(0, 50)}..."`);
+    return answer;
+  } catch (error) {
+    console.error("❌ AI error:", error.message);
+    return "عذراً، حدث خطأ. حاول مرة أخرى.";
+  }
 }
 
 async function validateNameWithAI(name) {
-  const response = await axios.post(
-    "https://api.anthropic.com/v1/messages",
-    {
-      model: "claude-3-5-sonnet-20241022",
-      max_tokens: 10,
+  try {
+    const completion = await groqClient.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
       messages: [
         {
           role: "user",
-          content: `Is "${name}" a valid name? Answer: YES or NO`,
+          content: `Is "${name}" a valid human name? Answer only: YES or NO`,
         },
       ],
-    },
-    {
-      headers: {
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01",
-      },
-    },
-  );
-  return response.data.content[0].text.trim().toUpperCase() === "YES";
+    });
+    return (
+      completion.choices[0]?.message?.content?.trim().toUpperCase() === "YES"
+    );
+  } catch (error) {
+    console.error("❌ Name validation error:", error.message);
+    return true; // Fallback: accept name if validation fails
+  }
 }
 
 // 📋 Send Options (VOICE-AWARE)
@@ -254,51 +276,63 @@ function getSession(from) {
   return global.userSessions[from];
 }
 
-// 🎙️ AUDIO HANDLER
+// 🎙️ AUDIO HANDLER - FIXED
 async function handleAudioMessage(message, from) {
-  console.log(`🎤 Audio from ${from}`);
+  console.log(`🎤 Audio message received from ${from}`);
   try {
     const tempBookings = (global.tempBookings = global.tempBookings || {});
     const session = getSession(from);
     session.lastMessageType = "audio";
 
+    // Step 1: Transcribe audio
     const transcript = await transcribeAudio(message?.audio?.id, from);
+    console.log(`📝 Transcript: "${transcript}"`);
+
     if (!transcript) {
       const voice = await generateVoice("لم أفهم، حاول مرة أخرى.");
       await sendVoiceMessage(from, voice);
       return;
     }
 
+    // Step 2: Check for cancellation
     if (isCancelRequest(transcript)) {
       delete tempBookings[from];
-      await askForCancellationPhone(from, true); // ✅ VOICE
+      await askForCancellationPhone(from, true);
       return;
     }
 
+    // Step 3: Check for location request
     if (isLocationRequest(transcript)) {
       await sendLocationMessages(from, isEnglish(transcript) ? "en" : "ar");
       return;
     }
 
+    // Step 4: Check for Friday
     if (containsFriday(transcript)) {
       const voice = await generateVoice("يوم الجمعة عطلة.");
       await sendVoiceMessage(from, voice);
-      await sendAppointmentOptions(from, true); // ✅ VOICE
+      await sendAppointmentOptions(from, true);
       return;
     }
 
+    // Step 5: Check if it's a question
     if (isQuestion(transcript)) {
+      console.log("🤔 Detected question, asking AI...");
       const answer = await askAI(transcript);
+      console.log(`💬 AI Answer: "${answer}"`);
       const voice = await generateVoice(answer);
       await sendVoiceMessage(from, voice);
       return;
     }
 
+    // Step 6: Check for booking request
     if (!tempBookings[from]) {
       if (transcript.includes("حجز") || transcript.includes("book")) {
         tempBookings[from] = {};
-        await sendAppointmentOptions(from, true); // ✅ VOICE
+        await sendAppointmentOptions(from, true);
       } else {
+        // Any other voice message -> treat as question
+        console.log("🗣️ General voice message, asking AI...");
         const answer = await askAI(transcript);
         const voice = await generateVoice(answer);
         await sendVoiceMessage(from, voice);
@@ -306,6 +340,7 @@ async function handleAudioMessage(message, from) {
       return;
     }
 
+    // Step 7: Collect booking info
     if (!tempBookings[from].name) {
       if (!(await validateNameWithAI(transcript))) {
         const voice = await generateVoice("أدخل اسمًا صحيحًا.");
@@ -326,7 +361,7 @@ async function handleAudioMessage(message, from) {
         return;
       }
       tempBookings[from].phone = normalized;
-      await sendServiceList(from, true); // ✅ VOICE
+      await sendServiceList(from, true);
       return;
     }
 
@@ -339,7 +374,16 @@ async function handleAudioMessage(message, from) {
       delete tempBookings[from];
     }
   } catch (err) {
-    console.error("❌ Audio error:", err);
+    console.error("❌ Audio handling error:", err.message);
+    console.error(err.stack);
+
+    // Send error voice message
+    try {
+      const voice = await generateVoice("عذراً، حدث خطأ. حاول مرة أخرى.");
+      await sendVoiceMessage(from, voice);
+    } catch (voiceErr) {
+      console.error("❌ Could not send error voice:", voiceErr.message);
+    }
   }
 }
 
@@ -413,7 +457,7 @@ export async function processWebhook(body) {
   const from = message.from;
   const messageType = message.type;
 
-  console.log(`\n📨 ${messageType} from ${from}`);
+  console.log(`\n📨 Received ${messageType} message from ${from}`);
 
   if (messageType === "audio") {
     await handleAudioMessage(message, from);
@@ -427,4 +471,5 @@ export {
   handleTextMessage,
   generateVoice,
   sendVoiceMessage,
+  askAI,
 };
