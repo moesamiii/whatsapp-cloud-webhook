@@ -1,6 +1,14 @@
 /**
  * webhookHandler.js
- * FIXED - With Voice Reply Support
+ *
+ * SAME FILE – ESM FIX ONLY
+ *
+ * Responsibilities:
+ * - Verify webhook
+ * - Receive WhatsApp messages
+ * - Detect intents
+ * - Handle booking flow
+ * - Handle audio transcription
  */
 
 import {
@@ -9,8 +17,6 @@ import {
   sendAppointmentOptions,
   askForCancellationPhone,
   processCancellation,
-  generateVoice,
-  sendVoiceMessage,
 } from "./helpers.js";
 
 // media functions
@@ -37,90 +43,13 @@ import {
   getGreeting,
 } from "./messageHandlers.js";
 
-// ✅ Import transcription
-import { transcribeAudio } from "./transcriptionService.js";
+import { handleAudioMessage } from "./webhookProcessor.js";
 
 import {
   getSession,
   handleInteractiveMessage,
   handleTextMessage,
 } from "./bookingFlowHandler.js";
-
-// ---------------------------------------------
-// 🎙️ AUDIO HANDLER - WITH VOICE REPLY
-// ---------------------------------------------
-async function handleAudioMessage(message, from) {
-  console.log(`🎤 Audio message received from ${from}`);
-
-  try {
-    const session = getSession(from);
-    session.lastMessageType = "audio";
-
-    // Step 1: Transcribe audio
-    const transcript = await transcribeAudio(message?.audio?.id, from);
-    console.log(`📝 Transcript: "${transcript}"`);
-
-    if (!transcript) {
-      const voice = await generateVoice("لم أفهم، حاول مرة أخرى.");
-      await sendVoiceMessage(from, voice);
-      return;
-    }
-
-    // Step 2: Check for greeting
-    if (isGreeting(transcript)) {
-      const reply = getGreeting(isEnglish(transcript));
-      const voice = await generateVoice(reply);
-      await sendVoiceMessage(from, voice);
-      return;
-    }
-
-    // Step 3: Check for location
-    if (isLocationRequest(transcript)) {
-      await sendLocationMessages(from, isEnglish(transcript) ? "en" : "ar");
-      return;
-    }
-
-    // Step 4: Check for offers
-    if (isOffersRequest(transcript)) {
-      const lang = isEnglish(transcript) ? "en" : "ar";
-      await sendOffersValidity(from, lang);
-      return;
-    }
-
-    // Step 5: Check for doctors
-    if (isDoctorsRequest(transcript)) {
-      const lang = isEnglish(transcript) ? "en" : "ar";
-      await sendDoctorsImages(from, lang);
-      return;
-    }
-
-    // Step 6: Check for cancellation
-    if (isCancelRequest(transcript)) {
-      session.waitingForCancelPhone = true;
-      await askForCancellationPhone(from, true); // ✅ Voice mode
-      return;
-    }
-
-    // Step 7: Default - Ask AI and reply with voice
-    console.log("🤔 Asking AI for response...");
-    const answer = await askAI(transcript);
-    console.log(`💬 AI Answer: "${answer}"`);
-
-    const voice = await generateVoice(answer);
-    await sendVoiceMessage(from, voice);
-  } catch (err) {
-    console.error("❌ Audio handling error:", err.message);
-    console.error(err.stack);
-
-    // Send error voice message
-    try {
-      const voice = await generateVoice("عذراً، حدث خطأ. حاول مرة أخرى.");
-      await sendVoiceMessage(from, voice);
-    } catch (voiceErr) {
-      console.error("❌ Could not send error voice:", voiceErr.message);
-    }
-  }
-}
 
 // ---------------------------------------------
 // REGISTER WHATSAPP WEBHOOK ROUTES
@@ -159,7 +88,7 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
       const session = getSession(from);
       const tempBookings = (global.tempBookings = global.tempBookings || {});
 
-      // 🎙️ AUDIO - Handle voice messages with voice replies
+      // 🎙️ AUDIO
       if (message.type === "audio") {
         await handleAudioMessage(message, from);
         return res.sendStatus(200);

@@ -1,52 +1,10 @@
 /**
- * helpers.js (FINAL — Supabase + VOICE SUPPORT - ES6 VERSION)
+ * helpers.js (FINAL — Supabase ONLY, No Google Sheets)
  */
 
-import axios from "axios";
-import FormData from "form-data";
-import Groq from "groq-sdk";
-import { createClient } from "@supabase/supabase-js";
-
-// =============================================
-// 🤖 GROQ AI CLIENT
-// =============================================
-const groqClient = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
-});
-
-async function askAI(userMessage) {
-  try {
-    const completion = await groqClient.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        {
-          role: "system",
-          content:
-            "أنت موظف خدمة عملاء لعيادة Glow Clinic. رد فقط على الأسئلة المتعلقة بالمواعيد، الأسعار، الموقع، والحجز. رد بإيجاز وبالعربية فقط.",
-        },
-        { role: "user", content: userMessage },
-      ],
-    });
-    return completion.choices[0]?.message?.content || "عذراً، لم أفهم.";
-  } catch (error) {
-    console.error("❌ AI error:", error.message);
-    return "عذراً، حدث خطأ. حاول مرة أخرى.";
-  }
-}
-
-async function validateNameWithAI(name) {
-  // Simple validation
-  return name && name.trim().length > 0 && /[a-zA-Zأ-ي]/.test(name);
-}
-
-// =============================================
-// 🗄 SUPABASE
-// =============================================
-import {
-  findLastBookingByPhone,
-  updateBookingStatus,
-  insertBookingToSupabase,
-} from "./databaseHelper.js";
+const axios = require("axios");
+const { askAI, validateNameWithAI } = require("./aiHelper");
+const { createClient } = require("@supabase/supabase-js");
 
 // ✅ Initialize Supabase
 const supabase = createClient(
@@ -82,113 +40,26 @@ async function loadClinicSettings() {
 loadClinicSettings();
 
 // =============================================
+// 🗄 SUPABASE — ALL BOOKING LOGIC HERE
+// =============================================
+const {
+  findLastBookingByPhone,
+  updateBookingStatus,
+  insertBookingToSupabase,
+} = require("./databaseHelper");
+
+// =============================================
 // 🌍 ENVIRONMENT VARIABLES
 // =============================================
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
-const ELEVENLABS_API_KEY = process.env.ELEVENLABS_API_KEY;
-const VOICE_ID = "yXEnnEln9armDCyhkXcA"; // Saudi Arabic voice
-
-// =============================================
-// 🎙️ VOICE GENERATION & SENDING
-// =============================================
-async function generateVoice(text) {
-  try {
-    console.log(`🎤 Generating voice for: "${text.substring(0, 50)}..."`);
-
-    const response = await axios.post(
-      `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
-      {
-        text,
-        model_id: "eleven_multilingual_v2",
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.75,
-        },
-      },
-      {
-        headers: {
-          "xi-api-key": ELEVENLABS_API_KEY,
-          "Content-Type": "application/json",
-          Accept: "audio/ogg",
-        },
-        responseType: "arraybuffer",
-      },
-    );
-
-    console.log("✅ Voice generated successfully");
-    return Buffer.from(response.data);
-  } catch (error) {
-    console.error("❌ Voice generation error:", error.message);
-    throw error;
-  }
-}
-
-async function sendVoiceMessage(to, audioBuffer) {
-  try {
-    console.log(`🎧 Sending voice message to ${to}`);
-
-    // 1️⃣ Upload audio to WhatsApp
-    const form = new FormData();
-    form.append("file", audioBuffer, {
-      filename: "reply.ogg",
-      contentType: "audio/ogg",
-    });
-    form.append("messaging_product", "whatsapp");
-    form.append("type", "audio");
-
-    const uploadRes = await axios.post(
-      `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/media`,
-      form,
-      {
-        headers: {
-          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-          ...form.getHeaders(),
-        },
-      },
-    );
-
-    const mediaId = uploadRes.data.id;
-    console.log(`✅ Audio uploaded, media ID: ${mediaId}`);
-
-    // 2️⃣ Send voice note
-    await axios.post(
-      `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`,
-      {
-        messaging_product: "whatsapp",
-        to: to,
-        type: "audio",
-        audio: {
-          id: mediaId,
-          voice: true, // ✅ CRITICAL - makes it a voice note
-        },
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-
-    console.log(`✅ Voice message sent successfully to ${to}`);
-  } catch (error) {
-    console.error("❌ Voice sending error:", error.message);
-    if (error.response) {
-      console.error("Response data:", error.response.data);
-    }
-    throw error;
-  }
-}
 
 // =============================================
 // 💬 SEND WHATSAPP TEXT MESSAGE
 // =============================================
 async function sendTextMessage(to, text) {
   try {
-    console.log(
-      `📤 Sending WhatsApp text to ${to}: ${text.substring(0, 50)}...`,
-    );
+    console.log(`📤 Sending WhatsApp: ${to}`, text);
 
     await axios.post(
       `https://graph.facebook.com/v17.0/${PHONE_NUMBER_ID}/messages`,
@@ -204,27 +75,15 @@ async function sendTextMessage(to, text) {
         },
       },
     );
-
-    console.log("✅ Text message sent successfully");
   } catch (err) {
     console.error("❌ WhatsApp send error:", err.response?.data || err.message);
   }
 }
 
 // =============================================
-// 📅 APPOINTMENT BUTTONS (VOICE-AWARE)
+// 📅 APPOINTMENT BUTTONS
 // =============================================
-async function sendAppointmentOptions(to, useVoice = false) {
-  // ✅ If voice mode, send voice message
-  if (useVoice) {
-    const voice = await generateVoice(
-      "اختر موعدك: الساعة 3 مساءً، 6 مساءً، أو 9 مساءً. أرسل الوقت المناسب لك.",
-    );
-    await sendVoiceMessage(to, voice);
-    return;
-  }
-
-  // ✅ Otherwise, send interactive buttons
+async function sendAppointmentOptions(to) {
   try {
     // ✅ Get dynamic booking times or use defaults
     const bookingTimes = clinicSettings?.booking_times || [
@@ -262,25 +121,13 @@ async function sendAppointmentOptions(to, useVoice = false) {
     );
   } catch (err) {
     console.error("❌ Appointment button error:", err.message);
-    // Fallback to text if buttons fail
-    await sendTextMessage(to, "📅 أرسل الوقت المناسب لك: 3 PM، 6 PM، أو 9 PM");
   }
 }
 
 // =============================================
-// 💊 SERVICE LIST (VOICE-AWARE)
+// 💊 SERVICE LIST
 // =============================================
-async function sendServiceList(to, useVoice = false) {
-  // ✅ If voice mode, send voice message
-  if (useVoice) {
-    const voice = await generateVoice(
-      "اختر الخدمة: فحص عام، تنظيف الأسنان، تبييض الأسنان، حشو الأسنان، علاج الجذور، التركيبات، تقويم الأسنان، أو خلع الأسنان.",
-    );
-    await sendVoiceMessage(to, voice);
-    return;
-  }
-
-  // ✅ Otherwise, send interactive list
+async function sendServiceList(to) {
   try {
     await axios.post(
       `https://graph.facebook.com/v17.0/${PHONE_NUMBER_ID}/messages`,
@@ -325,73 +172,45 @@ async function sendServiceList(to, useVoice = false) {
     );
   } catch (err) {
     console.error("❌ Service list error:", err.message);
-    // Fallback to text if list fails
-    await sendTextMessage(
-      to,
-      "💊 اختر الخدمة: فحص عام، تنظيف، تبييض، حشو، علاج جذور، تركيبات، تقويم، أو خلع.",
-    );
   }
 }
 
 // ======================================================
-// 🔥 CANCEL BOOKING (VOICE-AWARE)
+// 🔥 CANCEL BOOKING
 // ======================================================
-async function askForCancellationPhone(to, useVoice = false) {
-  const message = "📌 أرسل رقم الجوال المستخدم بالحجز لإلغاء الموعد.";
-
-  if (useVoice) {
-    const voice = await generateVoice(message);
-    await sendVoiceMessage(to, voice);
-  } else {
-    await sendTextMessage(to, message);
-  }
+async function askForCancellationPhone(to) {
+  await sendTextMessage(
+    to,
+    "📌 أرسل رقم الجوال المستخدم بالحجز لإلغاء الموعد.",
+  );
 }
 
-async function processCancellation(to, phone, useVoice = false) {
+async function processCancellation(to, phone) {
   try {
     const booking = await findLastBookingByPhone(phone);
 
     if (!booking) {
-      const message = "❌ لا يوجد حجز مرتبط بهذا الرقم.";
-      if (useVoice) {
-        const voice = await generateVoice(message);
-        await sendVoiceMessage(to, voice);
-      } else {
-        await sendTextMessage(to, message);
-      }
+      await sendTextMessage(to, "❌ لا يوجد حجز مرتبط بهذا الرقم.");
       return;
     }
 
     await updateBookingStatus(booking.id, "Canceled");
 
-    const message = `🟣 تم إلغاء الحجز:\n👤 ${booking.name}\n💊 ${booking.service}\n📅 ${booking.appointment}`;
-
-    if (useVoice) {
-      const voice = await generateVoice(
-        `تم إلغاء الحجز بنجاح. ${booking.name}، ${booking.service}، بتاريخ ${booking.appointment}`,
-      );
-      await sendVoiceMessage(to, voice);
-    } else {
-      await sendTextMessage(to, message);
-    }
+    await sendTextMessage(
+      to,
+      `🟣 تم إلغاء الحجز:\n👤 ${booking.name}\n💊 ${booking.service}\n📅 ${booking.appointment}`,
+    );
   } catch (err) {
     console.error("❌ Cancel error:", err.message);
-
-    const message = "⚠️ حدث خطأ أثناء الإلغاء. حاول لاحقًا.";
-    if (useVoice) {
-      const voice = await generateVoice(message);
-      await sendVoiceMessage(to, voice);
-    } else {
-      await sendTextMessage(to, message);
-    }
+    await sendTextMessage(to, "⚠️ حدث خطأ أثناء الإلغاء. حاول لاحقًا.");
   }
 }
 
 // =============================================
-// 📤 EXPORTS (ES6 STYLE)
+// 📤 EXPORTS
 // =============================================
-export {
-  // AI - NOW DEFINED HERE
+module.exports = {
+  // AI
   askAI,
   validateNameWithAI,
 
@@ -400,11 +219,7 @@ export {
   sendAppointmentOptions,
   sendServiceList,
 
-  // Voice - CRITICAL FOR VOICE REPLIES
-  generateVoice,
-  sendVoiceMessage,
-
-  // Supabase
+  // Supabase ONLY
   insertBookingToSupabase,
 
   // Cancellation
