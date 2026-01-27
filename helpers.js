@@ -1,11 +1,20 @@
 /**
- * helpers.js (FINAL — Supabase + VOICE SUPPORT)
+ * helpers.js (FINAL — Supabase + VOICE SUPPORT - ES6 VERSION)
  */
 
-const axios = require("axios");
-const FormData = require("form-data");
-const { askAI, validateNameWithAI } = require("./aiHelper");
-const { createClient } = require("@supabase/supabase-js");
+import axios from "axios";
+import FormData from "form-data";
+import { askAI, validateNameWithAI } from "./aiHelper.js";
+import { createClient } from "@supabase/supabase-js";
+
+// =============================================
+// 🗄 SUPABASE
+// =============================================
+import {
+  findLastBookingByPhone,
+  updateBookingStatus,
+  insertBookingToSupabase,
+} from "./databaseHelper.js";
 
 // ✅ Initialize Supabase
 const supabase = createClient(
@@ -41,15 +50,6 @@ async function loadClinicSettings() {
 loadClinicSettings();
 
 // =============================================
-// 🗄 SUPABASE — ALL BOOKING LOGIC HERE
-// =============================================
-const {
-  findLastBookingByPhone,
-  updateBookingStatus,
-  insertBookingToSupabase,
-} = require("./databaseHelper");
-
-// =============================================
 // 🌍 ENVIRONMENT VARIABLES
 // =============================================
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
@@ -61,78 +61,92 @@ const VOICE_ID = "yXEnnEln9armDCyhkXcA"; // Saudi Arabic voice
 // 🎙️ VOICE GENERATION & SENDING
 // =============================================
 async function generateVoice(text) {
-  console.log(`🎤 Generating voice for: "${text.substring(0, 50)}..."`);
+  try {
+    console.log(`🎤 Generating voice for: "${text.substring(0, 50)}..."`);
 
-  const response = await axios.post(
-    `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
-    {
-      text,
-      model_id: "eleven_multilingual_v2",
-      voice_settings: {
-        stability: 0.5,
-        similarity_boost: 0.75,
+    const response = await axios.post(
+      `https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}`,
+      {
+        text,
+        model_id: "eleven_multilingual_v2",
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.75,
+        },
       },
-    },
-    {
-      headers: {
-        "xi-api-key": ELEVENLABS_API_KEY,
-        "Content-Type": "application/json",
-        Accept: "audio/ogg",
+      {
+        headers: {
+          "xi-api-key": ELEVENLABS_API_KEY,
+          "Content-Type": "application/json",
+          Accept: "audio/ogg",
+        },
+        responseType: "arraybuffer",
       },
-      responseType: "arraybuffer",
-    },
-  );
+    );
 
-  return Buffer.from(response.data);
+    console.log("✅ Voice generated successfully");
+    return Buffer.from(response.data);
+  } catch (error) {
+    console.error("❌ Voice generation error:", error.message);
+    throw error;
+  }
 }
 
 async function sendVoiceMessage(to, audioBuffer) {
-  console.log(`🎧 Sending voice message to ${to}`);
+  try {
+    console.log(`🎧 Sending voice message to ${to}`);
 
-  // 1️⃣ Upload audio to WhatsApp
-  const form = new FormData();
-  form.append("file", audioBuffer, {
-    filename: "reply.ogg",
-    contentType: "audio/ogg",
-  });
-  form.append("messaging_product", "whatsapp");
-  form.append("type", "audio");
+    // 1️⃣ Upload audio to WhatsApp
+    const form = new FormData();
+    form.append("file", audioBuffer, {
+      filename: "reply.ogg",
+      contentType: "audio/ogg",
+    });
+    form.append("messaging_product", "whatsapp");
+    form.append("type", "audio");
 
-  const uploadRes = await axios.post(
-    `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/media`,
-    form,
-    {
-      headers: {
-        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-        ...form.getHeaders(),
+    const uploadRes = await axios.post(
+      `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/media`,
+      form,
+      {
+        headers: {
+          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+          ...form.getHeaders(),
+        },
       },
-    },
-  );
+    );
 
-  const mediaId = uploadRes.data.id;
-  console.log(`✅ Audio uploaded, media ID: ${mediaId}`);
+    const mediaId = uploadRes.data.id;
+    console.log(`✅ Audio uploaded, media ID: ${mediaId}`);
 
-  // 2️⃣ Send voice note
-  await axios.post(
-    `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`,
-    {
-      messaging_product: "whatsapp",
-      to: to,
-      type: "audio",
-      audio: {
-        id: mediaId,
-        voice: true, // ✅ CRITICAL - makes it a voice note
+    // 2️⃣ Send voice note
+    await axios.post(
+      `https://graph.facebook.com/v21.0/${PHONE_NUMBER_ID}/messages`,
+      {
+        messaging_product: "whatsapp",
+        to: to,
+        type: "audio",
+        audio: {
+          id: mediaId,
+          voice: true, // ✅ CRITICAL - makes it a voice note
+        },
       },
-    },
-    {
-      headers: {
-        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-        "Content-Type": "application/json",
+      {
+        headers: {
+          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
+        },
       },
-    },
-  );
+    );
 
-  console.log(`✅ Voice message sent successfully`);
+    console.log(`✅ Voice message sent successfully to ${to}`);
+  } catch (error) {
+    console.error("❌ Voice sending error:", error.message);
+    if (error.response) {
+      console.error("Response data:", error.response.data);
+    }
+    throw error;
+  }
 }
 
 // =============================================
@@ -140,7 +154,9 @@ async function sendVoiceMessage(to, audioBuffer) {
 // =============================================
 async function sendTextMessage(to, text) {
   try {
-    console.log(`📤 Sending WhatsApp: ${to}`, text);
+    console.log(
+      `📤 Sending WhatsApp text to ${to}: ${text.substring(0, 50)}...`,
+    );
 
     await axios.post(
       `https://graph.facebook.com/v17.0/${PHONE_NUMBER_ID}/messages`,
@@ -156,6 +172,8 @@ async function sendTextMessage(to, text) {
         },
       },
     );
+
+    console.log("✅ Text message sent successfully");
   } catch (err) {
     console.error("❌ WhatsApp send error:", err.response?.data || err.message);
   }
@@ -338,9 +356,9 @@ async function processCancellation(to, phone, useVoice = false) {
 }
 
 // =============================================
-// 📤 EXPORTS
+// 📤 EXPORTS (ES6 STYLE)
 // =============================================
-module.exports = {
+export {
   // AI
   askAI,
   validateNameWithAI,
@@ -350,11 +368,11 @@ module.exports = {
   sendAppointmentOptions,
   sendServiceList,
 
-  // Voice
+  // Voice - CRITICAL FOR VOICE REPLIES
   generateVoice,
   sendVoiceMessage,
 
-  // Supabase ONLY
+  // Supabase
   insertBookingToSupabase,
 
   // Cancellation
