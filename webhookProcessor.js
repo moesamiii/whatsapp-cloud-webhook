@@ -56,7 +56,9 @@ async function generateVoice(text) {
       headers: {
         "xi-api-key": ELEVENLABS_API_KEY,
         "Content-Type": "application/json",
+        Accept: "audio/ogg",
       },
+
       responseType: "arraybuffer",
     },
   );
