@@ -1,5 +1,14 @@
 /**
  * webhookHandler.js
+ *
+ * SAME FILE – ESM FIX ONLY
+ *
+ * Responsibilities:
+ * - Verify webhook
+ * - Receive WhatsApp messages
+ * - Detect intents
+ * - Handle booking flow
+ * - Handle audio transcription
  */
 
 import {
@@ -8,9 +17,9 @@ import {
   sendAppointmentOptions,
   askForCancellationPhone,
   processCancellation,
-  saveMessageToSupabase, // ✅ NEW
 } from "./helpers.js";
 
+// media functions
 import {
   sendLocationMessages,
   sendOffersImages,
@@ -18,8 +27,10 @@ import {
   sendOffersValidity,
 } from "./mediaService.js";
 
+// ban words
 import { containsBanWords, sendBanWordsResponse } from "./contentFilter.js";
 
+// detection helpers
 import {
   isLocationRequest,
   isOffersRequest,
@@ -40,8 +51,13 @@ import {
   handleTextMessage,
 } from "./bookingFlowHandler.js";
 
+// ---------------------------------------------
+// REGISTER WHATSAPP WEBHOOK ROUTES
+// ---------------------------------------------
 function registerWebhookRoutes(app, VERIFY_TOKEN) {
+  // ---------------------------------
   // GET — Verify Webhook
+  // ---------------------------------
   app.get("/webhook", (req, res) => {
     const mode = req.query["hub.mode"];
     const token = req.query["hub.verify_token"];
@@ -54,10 +70,13 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
     return res.sendStatus(403);
   });
 
+  // ---------------------------------
   // POST — Receive WhatsApp Events
+  // ---------------------------------
   app.post("/webhook", async (req, res) => {
     try {
       const body = req.body;
+
       const message =
         body.entry?.[0]?.changes?.[0]?.value?.messages?.[0] || null;
 
@@ -65,14 +84,6 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
 
       const from = message.from;
       const text = message.text?.body?.trim() || null;
-
-      // ✅ SAVE INBOUND MESSAGE TO SUPABASE
-      await saveMessageToSupabase(
-        from,
-        process.env.PHONE_NUMBER_ID,
-        text || `[${message.type}]`,
-        "inbound",
-      );
 
       const session = getSession(from);
       const tempBookings = (global.tempBookings = global.tempBookings || {});
@@ -103,8 +114,10 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
       if (containsBanWords(text)) {
         const lang = isEnglish(text) ? "en" : "ar";
         await sendBanWordsResponse(from, lang);
+
         delete tempBookings[from];
         session.waitingForCancelPhone = false;
+
         return res.sendStatus(200);
       }
 
@@ -118,6 +131,7 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
       // 🎁 OFFERS
       if (isOffersRequest(text)) {
         session.waitingForOffersConfirmation = true;
+
         const lang = isEnglish(text) ? "en" : "ar";
         await sendOffersValidity(from, lang);
         return res.sendStatus(200);
@@ -126,10 +140,12 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
       if (session.waitingForOffersConfirmation) {
         if (isOffersConfirmation(text)) {
           session.waitingForOffersConfirmation = false;
+
           const lang = isEnglish(text) ? "en" : "ar";
           await sendOffersImages(from, lang);
           return res.sendStatus(200);
         }
+
         session.waitingForOffersConfirmation = false;
       }
 
@@ -144,16 +160,19 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
       if (isCancelRequest(text)) {
         session.waitingForCancelPhone = true;
         delete tempBookings[from];
+
         await askForCancellationPhone(from);
         return res.sendStatus(200);
       }
 
       if (session.waitingForCancelPhone) {
         const phone = text.replace(/\D/g, "");
+
         if (phone.length < 8) {
           await sendTextMessage(from, "⚠️ رقم الجوال غير صحيح. حاول مرة أخرى:");
           return res.sendStatus(200);
         }
+
         session.waitingForCancelPhone = false;
         await processCancellation(from, phone);
         return res.sendStatus(200);

@@ -55,28 +55,6 @@ const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 
 // =============================================
-// 💾 SAVE MESSAGE TO SUPABASE
-// =============================================
-async function saveMessageToSupabase(
-  fromNumber,
-  toNumber,
-  messageBody,
-  direction,
-) {
-  try {
-    await supabase.from("whatsapp_messages").insert({
-      from_number: fromNumber,
-      to_number: toNumber,
-      message_body: messageBody,
-      direction: direction,
-      created_at: new Date().toISOString(),
-    });
-  } catch (err) {
-    console.error("❌ Error saving message to Supabase:", err.message);
-  }
-}
-
-// =============================================
 // 💬 SEND WHATSAPP TEXT MESSAGE
 // =============================================
 async function sendTextMessage(to, text) {
@@ -97,9 +75,6 @@ async function sendTextMessage(to, text) {
         },
       },
     );
-
-    // ✅ Save outbound message to Supabase
-    await saveMessageToSupabase(PHONE_NUMBER_ID, to, text, "outbound");
   } catch (err) {
     console.error("❌ WhatsApp send error:", err.response?.data || err.message);
   }
@@ -110,12 +85,14 @@ async function sendTextMessage(to, text) {
 // =============================================
 async function sendAppointmentOptions(to) {
   try {
+    // ✅ Get dynamic booking times or use defaults
     const bookingTimes = clinicSettings?.booking_times || [
       "3 PM",
       "6 PM",
       "9 PM",
     ];
 
+    // ✅ Build buttons dynamically from database settings
     const buttons = bookingTimes.slice(0, 3).map((time, index) => ({
       type: "reply",
       reply: {
@@ -233,13 +210,19 @@ async function processCancellation(to, phone) {
 // 📤 EXPORTS
 // =============================================
 module.exports = {
+  // AI
   askAI,
   validateNameWithAI,
+
+  // WhatsApp
   sendTextMessage,
   sendAppointmentOptions,
   sendServiceList,
+
+  // Supabase ONLY
   insertBookingToSupabase,
+
+  // Cancellation
   askForCancellationPhone,
   processCancellation,
-  saveMessageToSupabase, // ✅ exported so webhookHandler can use it
 };
