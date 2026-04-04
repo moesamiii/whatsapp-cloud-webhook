@@ -43,7 +43,9 @@ function detectLanguage(text) {
 }
 
 function isPhoneRequest(text) {
-  return /(رقم|جوال|اتصال|تواصل|phone|number|contact|call)/i.test(text);
+  return /(رقم|الرقم|رقمكم|جوال|اتصال|تواصل|هاتف|رقم الهاتف|phone|number|contact|call)/i.test(
+    text,
+  );
 }
 // 🤖 الذكاء الاصطناعي الذكي ثنائي اللغة
 async function askAI(userMessage) {
