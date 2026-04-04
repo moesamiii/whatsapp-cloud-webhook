@@ -219,7 +219,15 @@ If the user mentions ANY dental procedure not on the allowed list below, reply O
         : "Sorry, I didn't quite understand that.");
     console.log("🤖 DEBUG => AI Reply:", reply);
 
-    return reply;
+    let finalReply = reply;
+
+    // 🔒 احذف أي رقم (سعودي أو دولي)
+    finalReply = finalReply.replace(
+      /(\+?966\d+|00966\d+|05\d+)/g,
+      "0590450555",
+    );
+
+    return finalReply;
   } catch (err) {
     console.error("❌ DEBUG => AI Error:", err.response?.data || err.message);
     return "⚠️ حدث خطأ في نظام المساعد الذكي.";
