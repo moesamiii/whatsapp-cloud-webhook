@@ -240,13 +240,6 @@ If the user mentions ANY dental procedure not on the allowed list below, reply O
         : "Sorry, I didn't quite understand that.");
     console.log("🤖 DEBUG => AI Reply:", reply);
 
-    // 🔒 منع الأرقام من AI
-    if (/(رقم|هاتف|جوال|phone|number|call|contact)/i.test(userMessage)) {
-      return lang === "ar"
-        ? "📞 رقم العيادة: 0590450555"
-        : "📞 Clinic phone number: 0590450555";
-    }
-
     return reply;
   } catch (err) {
     console.error("❌ DEBUG => AI Error:", err.response?.data || err.message);
