@@ -42,6 +42,9 @@ function detectLanguage(text) {
   return arabic.test(text) ? "ar" : "en";
 }
 
+function isPhoneRequest(text) {
+  return /(رقم|جوال|اتصال|تواصل|phone|number|contact|call)/i.test(text);
+}
 // 🤖 الذكاء الاصطناعي الذكي ثنائي اللغة
 async function askAI(userMessage) {
   try {
@@ -51,6 +54,13 @@ async function askAI(userMessage) {
     console.log("🌐 Detected language:", lang);
 
     // ✅ Get dynamic clinic data or use defaults
+
+    // 🔒 إذا سأل عن الرقم → رد ثابت
+    if (isPhoneRequest(userMessage)) {
+      return lang === "ar"
+        ? "📞 رقم العيادة: 0590450555"
+        : "📞 Clinic phone number: 0590450555";
+    }
 
     const clinicName = "عيادات بيفرلي هيلز";
     const locationAr =
@@ -220,15 +230,6 @@ If the user mentions ANY dental procedure not on the allowed list below, reply O
     console.log("🤖 DEBUG => AI Reply:", reply);
 
     return reply;
-    let finalReply = reply;
-
-    // 🔒 احذف أي رقم (سعودي أو دولي)
-    finalReply = finalReply.replace(
-      /(\+?966\d+|00966\d+|05\d+)/g,
-      "0590450555",
-    );
-
-    return finalReply;
   } catch (err) {
     console.error("❌ DEBUG => AI Error:", err.response?.data || err.message);
     return "⚠️ حدث خطأ في نظام المساعد الذكي.";
