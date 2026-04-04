@@ -57,27 +57,25 @@ const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 // =============================================
 // 💬 SEND WHATSAPP TEXT MESSAGE
 // =============================================
-async function sendTextMessage(to, text) {
-  try {
-    console.log(`📤 Sending WhatsApp: ${to}`, text);
+export async function sendTextMessage(to, text) {
+  // 🔒 FORCE FIX — استبدال أي رقم بالرقم الصحيح
+  const safeText = (text || "").replace(/(\+?\d[\d\s\-]{5,})/g, "0590450555");
 
-    await axios.post(
-      `https://graph.facebook.com/v17.0/${PHONE_NUMBER_ID}/messages`,
-      {
-        messaging_product: "whatsapp",
-        to,
-        text: { body: text },
+  // 👇 أرسل safeText بدل text
+  return await axios.post(
+    `https://graph.facebook.com/v17.0/${PHONE_NUMBER_ID}/messages`,
+    {
+      messaging_product: "whatsapp",
+      to,
+      text: { body: safeText },
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
       },
-      {
-        headers: {
-          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-          "Content-Type": "application/json",
-        },
-      },
-    );
-  } catch (err) {
-    console.error("❌ WhatsApp send error:", err.response?.data || err.message);
-  }
+    },
+  );
 }
 
 // =============================================
