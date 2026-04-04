@@ -85,6 +85,22 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
       const from = message.from;
       const text = message.text?.body?.trim() || null;
 
+      // 🔒 GLOBAL PHONE OVERRIDE (المكان الصحيح)
+      if (
+        text &&
+        /(رقم|الرقم|رقمكم|جوال|اتصال|تواصل|هاتف|phone|number|call|contact)/i.test(
+          text,
+        )
+      ) {
+        await sendTextMessage(
+          from,
+          isEnglish(text)
+            ? "📞 Clinic phone number: 0590450555"
+            : "📞 رقم العيادة: 0590450555",
+        );
+        return res.sendStatus(200);
+      }
+
       const session = getSession(from);
       const tempBookings = (global.tempBookings = global.tempBookings || {});
 
