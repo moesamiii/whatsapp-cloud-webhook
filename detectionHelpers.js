@@ -57,7 +57,8 @@ function getRandomIndex(length) {
 // ---------------------------------------------
 function getGreeting(isEnglish = false) {
   // ✅ Get dynamic clinic name or use default
-  const clinicName = clinicSettings?.clinic_name || "Ibtisama Clinic";
+
+  const clinicName = "عيادات بيفرلي هيلز";
 
   const englishGreetings = [
     `👋 Hello! Welcome to *${clinicName}*! How can I assist you today?`,
@@ -73,7 +74,7 @@ function getGreeting(isEnglish = false) {
   ];
 
   const arabicGreetings = [
-    `👋 أهلاً وسهلاً في *${clinicName}*! كيف يمكنني مساعدتك اليوم؟`,
+    `👋 أهلاً وسهلاً في *${clinicName}*! 📞 رقمنا: 0590450555 كيف نقدر نخدمك؟`,
     `مرحباً بك في عيادتنا 💚 هل ترغب بحجز موعد أو الاستفسار عن خدمة؟`,
     `أهلاً بك 👋 يسعدنا تواصلك مع *${clinicName}*، كيف نقدر نخدمك اليوم؟`,
     `🌸 حيّاك الله! وش أكثر خدمة حاب تستفسر عنها اليوم؟`,
