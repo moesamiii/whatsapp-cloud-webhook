@@ -51,13 +51,13 @@ async function askAI(userMessage) {
     console.log("🌐 Detected language:", lang);
 
     // ✅ Get dynamic clinic data or use defaults
-    const clinicName = clinicSettings?.clinic_name || "عيادة ابتسامة";
+
+    const clinicName = "عيادات بيفرلي هيلز";
     const locationAr =
-      clinicSettings?.location_ar ||
-      "عمّان – عبدون، خلف بنك الإسكان، الطابق الأول";
+      clinicSettings?.location_ar || "عيادات بيفرلي هيلز  - حي السليمانية";
     const locationEn =
       clinicSettings?.location_en ||
-      "Amman – Abdoun, behind Housing Bank, First Floor";
+      "Beverly Hills Clinics – Al Sulaymaniyah District";
     const workingHoursAr =
       clinicSettings?.working_hours_ar ||
       "يوميًا من الساعة 2 ظهرًا حتى الساعة 10 مساءً (الجمعة مغلق)";

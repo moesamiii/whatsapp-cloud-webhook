@@ -26,8 +26,8 @@ export default async function handler(req, res) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: "Smile Clinic",
-        phone: "962785050875",
+        name: "عيادات بيفرلي هيلز ",
+        phone: "0590450555",
         service: "Booking",
         appointment: messageText,
       }),
