@@ -1,14 +1,6 @@
 /**
  * webhookHandler.js
- *
- * SAME FILE – ESM FIX ONLY
- *
- * Responsibilities:
- * - Verify webhook
- * - Receive WhatsApp messages
- * - Detect intents
- * - Handle booking flow
- * - Handle audio transcription
+ * FIXED — Phone number hallucination prevention
  */
 
 import {
@@ -19,7 +11,6 @@ import {
   processCancellation,
 } from "./helpers.js";
 
-// media functions
 import {
   sendLocationMessages,
   sendOffersImages,
@@ -27,10 +18,8 @@ import {
   sendOffersValidity,
 } from "./mediaService.js";
 
-// ban words
 import { containsBanWords, sendBanWordsResponse } from "./contentFilter.js";
 
-// detection helpers
 import {
   isLocationRequest,
   isOffersRequest,
@@ -51,13 +40,46 @@ import {
   handleTextMessage,
 } from "./bookingFlowHandler.js";
 
-// ---------------------------------------------
-// REGISTER WHATSAPP WEBHOOK ROUTES
-// ---------------------------------------------
+// =============================================
+// 🔒 PHONE NUMBER CONFIG — CHANGE ONLY HERE
+// =============================================
+const CLINIC_PHONE = "0590450555";
+
+// =============================================
+// 🔒 PHONE INTENT DETECTION
+// =============================================
+function isPhoneRequest(text = "") {
+  return /(رقم|الرقم|رقمكم|جوال|اتصال|تواصل|هاتف|كيف اتواصل|رقم التواصل|تلفون|موبايل|phone|number|call|contact|reach|tel|whatsapp)/i.test(
+    text,
+  );
+}
+
+// =============================================
+// 🔒 SANITIZE OUTGOING TEXT — LAST SAFETY NET
+// Replaces any phone-like number in bot reply
+// with the correct clinic number
+// =============================================
+function sanitizePhoneInText(text = "") {
+  // Match numbers that look like phone numbers:
+  // - 8+ digits possibly with spaces, dashes, dots
+  // - Starting with 00, +, 05, 009
+  return text.replace(
+    /(\+?00?\d[\d\s\-\.]{7,}|\b05\d[\d\s\-]{6,}|\b9\d{8,})/g,
+    CLINIC_PHONE,
+  );
+}
+
+// Wrap sendTextMessage to always sanitize
+async function safeSend(to, text) {
+  const clean = sanitizePhoneInText(text);
+  await sendTextMessage(to, clean);
+}
+
+// =============================================
+// REGISTER WEBHOOK ROUTES
+// =============================================
 function registerWebhookRoutes(app, VERIFY_TOKEN) {
-  // ---------------------------------
   // GET — Verify Webhook
-  // ---------------------------------
   app.get("/webhook", (req, res) => {
     const mode = req.query["hub.mode"];
     const token = req.query["hub.verify_token"];
@@ -66,17 +88,13 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
     if (mode && token === VERIFY_TOKEN) {
       return res.status(200).send(challenge);
     }
-
     return res.sendStatus(403);
   });
 
-  // ---------------------------------
-  // POST — Receive WhatsApp Events
-  // ---------------------------------
+  // POST — Receive WhatsApp Messages
   app.post("/webhook", async (req, res) => {
     try {
       const body = req.body;
-
       const message =
         body.entry?.[0]?.changes?.[0]?.value?.messages?.[0] || null;
 
@@ -85,18 +103,16 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
       const from = message.from;
       const text = message.text?.body?.trim() || null;
 
-      // 🔒 GLOBAL PHONE OVERRIDE (المكان الصحيح)
-      if (
-        text &&
-        /(رقم|الرقم|رقمكم|جوال|اتصال|تواصل|هاتف|phone|number|call|contact)/i.test(
-          text,
-        )
-      ) {
-        await sendTextMessage(
+      // =============================================
+      // 🔒 PRIORITY 0: PHONE INTERCEPT
+      // Must be FIRST — before greeting, before AI
+      // =============================================
+      if (text && isPhoneRequest(text)) {
+        await safeSend(
           from,
           isEnglish(text)
-            ? "📞 Clinic phone number: 0590450555"
-            : "📞 رقم العيادة: 0590450555",
+            ? `📞 Our clinic phone number: ${CLINIC_PHONE}`
+            : `📞 رقم العيادة: ${CLINIC_PHONE}`,
         );
         return res.sendStatus(200);
       }
@@ -119,10 +135,13 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
       // Ignore non-text
       if (!text) return res.sendStatus(200);
 
+      // =============================================
       // 👋 GREETING
+      // =============================================
       if (isGreeting(text)) {
         const reply = getGreeting(isEnglish(text));
-        await sendTextMessage(from, reply);
+        // sanitize in case greeting template has wrong number
+        await safeSend(from, reply);
         return res.sendStatus(200);
       }
 
@@ -130,10 +149,8 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
       if (containsBanWords(text)) {
         const lang = isEnglish(text) ? "en" : "ar";
         await sendBanWordsResponse(from, lang);
-
         delete tempBookings[from];
         session.waitingForCancelPhone = false;
-
         return res.sendStatus(200);
       }
 
@@ -147,7 +164,6 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
       // 🎁 OFFERS
       if (isOffersRequest(text)) {
         session.waitingForOffersConfirmation = true;
-
         const lang = isEnglish(text) ? "en" : "ar";
         await sendOffersValidity(from, lang);
         return res.sendStatus(200);
@@ -156,12 +172,10 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
       if (session.waitingForOffersConfirmation) {
         if (isOffersConfirmation(text)) {
           session.waitingForOffersConfirmation = false;
-
           const lang = isEnglish(text) ? "en" : "ar";
           await sendOffersImages(from, lang);
           return res.sendStatus(200);
         }
-
         session.waitingForOffersConfirmation = false;
       }
 
@@ -176,7 +190,6 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
       if (isCancelRequest(text)) {
         session.waitingForCancelPhone = true;
         delete tempBookings[from];
-
         await askForCancellationPhone(from);
         return res.sendStatus(200);
       }
@@ -185,7 +198,7 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
         const phone = text.replace(/\D/g, "");
 
         if (phone.length < 8) {
-          await sendTextMessage(from, "⚠️ رقم الجوال غير صحيح. حاول مرة أخرى:");
+          await safeSend(from, "⚠️ رقم الجوال غير صحيح. حاول مرة أخرى:");
           return res.sendStatus(200);
         }
 
@@ -194,7 +207,9 @@ function registerWebhookRoutes(app, VERIFY_TOKEN) {
         return res.sendStatus(200);
       }
 
+      // =============================================
       // 🗓️ BOOKING FLOW
+      // =============================================
       await handleTextMessage(text, from, tempBookings);
 
       return res.sendStatus(200);

@@ -38,6 +38,11 @@ async function loadClinicSettings() {
 // ✅ Load settings on module initialization
 loadClinicSettings();
 
+// =============================================
+// 🔒 PHONE NUMBER — SINGLE SOURCE OF TRUTH
+// =============================================
+const CLINIC_PHONE = "0590450555";
+
 // ---------------------------------------------
 // 🔧 Helper Functions
 // ---------------------------------------------
@@ -56,8 +61,6 @@ function getRandomIndex(length) {
 // 👋 Greeting Detector and Random Response
 // ---------------------------------------------
 function getGreeting(isEnglish = false) {
-  // ✅ Get dynamic clinic name or use default
-
   const clinicName = "عيادات بيفرلي هيلز";
 
   const englishGreetings = [
@@ -74,16 +77,16 @@ function getGreeting(isEnglish = false) {
   ];
 
   const arabicGreetings = [
-    `👋 أهلاً وسهلاً في *${clinicName}*! 📞 رقمنا: 0590450555 كيف نقدر نخدمك؟`,
-    `مرحباً بك في عيادتنا 💚 هل ترغب بحجز موعد أو الاستفسار عن خدمة؟`,
-    `أهلاً بك 👋 يسعدنا تواصلك مع *${clinicName}*، كيف نقدر نخدمك اليوم؟`,
-    `🌸 حيّاك الله! وش أكثر خدمة حاب تستفسر عنها اليوم؟`,
-    `✨ أهلاً وسهلاً! هل ترغب بالتعرف على عروضنا أو حجز موعد؟`,
-    `💚 يسعدنا تواصلك مع *${clinicName}*! كيف ممكن نساعدك اليوم؟`,
-    `😊 مرحباً بك! تقدر تسأل عن أي خدمة أو عرض متوفر حالياً.`,
-    `👋 أهلين وسهلين فيك! وش الخدمة اللي حاب تعرف عنها أكثر؟`,
-    `🌷 يا مرحبا! كيف نقدر نساعدك اليوم في *${clinicName}*؟`,
-    `💬 أهلاً بك! هل ترغب بحجز موعد أو الاطلاع على عروضنا الحالية؟`,
+    `👋 أهلاً وسهلاً في *${clinicName}*!\n📞 رقمنا: ${CLINIC_PHONE}\nكيف نقدر نخدمك؟`,
+    `مرحباً بك في عيادتنا 💚\n📞 للتواصل: ${CLINIC_PHONE}\nهل ترغب بحجز موعد أو الاستفسار عن خدمة؟`,
+    `أهلاً بك 👋 يسعدنا تواصلك مع *${clinicName}*\n📞 ${CLINIC_PHONE}\nكيف نقدر نخدمك اليوم؟`,
+    `🌸 حيّاك الله!\n📞 رقمنا: ${CLINIC_PHONE}\nوش أكثر خدمة حاب تستفسر عنها اليوم؟`,
+    `✨ أهلاً وسهلاً!\n📞 ${CLINIC_PHONE}\nهل ترغب بالتعرف على عروضنا أو حجز موعد؟`,
+    `💚 يسعدنا تواصلك مع *${clinicName}*!\n📞 ${CLINIC_PHONE}\nكيف ممكن نساعدك اليوم؟`,
+    `😊 مرحباً بك!\n📞 رقمنا: ${CLINIC_PHONE}\nتقدر تسأل عن أي خدمة أو عرض متوفر حالياً.`,
+    `👋 أهلين وسهلين فيك!\n📞 ${CLINIC_PHONE}\nوش الخدمة اللي حاب تعرف عنها أكثر؟`,
+    `🌷 يا مرحبا!\n📞 ${CLINIC_PHONE}\nكيف نقدر نساعدك اليوم في *${clinicName}*؟`,
+    `💬 أهلاً بك!\n📞 ${CLINIC_PHONE}\nهل ترغب بحجز موعد أو الاطلاع على عروضنا الحالية؟`,
   ];
 
   const replies = isEnglish ? englishGreetings : arabicGreetings;

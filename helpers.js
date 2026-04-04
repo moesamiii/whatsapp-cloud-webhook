@@ -40,6 +40,18 @@ async function loadClinicSettings() {
 loadClinicSettings();
 
 // =============================================
+// 🔒 PHONE NUMBER — SINGLE SOURCE OF TRUTH
+// =============================================
+const CLINIC_PHONE = "0590450555";
+
+function sanitizePhoneInText(text = "") {
+  return text.replace(
+    /(\+?00?\d[\d\s\-\.]{7,}|\b05\d[\d\s\-]{6,}|\b9\d{8,})/g,
+    CLINIC_PHONE,
+  );
+}
+
+// =============================================
 // 🗄 SUPABASE — ALL BOOKING LOGIC HERE
 // =============================================
 const {
@@ -57,11 +69,10 @@ const PHONE_NUMBER_ID = process.env.PHONE_NUMBER_ID;
 // =============================================
 // 💬 SEND WHATSAPP TEXT MESSAGE
 // =============================================
-export async function sendTextMessage(to, text) {
-  // 🔒 FORCE FIX — استبدال أي رقم بالرقم الصحيح
-  const safeText = (text || "").replace(/(\+?\d[\d\s\-]{5,})/g, "0590450555");
+async function sendTextMessage(to, text) {
+  // 🔒 Sanitize any hallucinated phone numbers before sending
+  const safeText = sanitizePhoneInText(text || "");
 
-  // 👇 أرسل safeText بدل text
   return await axios.post(
     `https://graph.facebook.com/v17.0/${PHONE_NUMBER_ID}/messages`,
     {
