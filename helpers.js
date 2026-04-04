@@ -45,10 +45,13 @@ loadClinicSettings();
 const CLINIC_PHONE = "0590450555";
 
 function sanitizePhoneInText(text = "") {
-  return text.replace(
-    /(\+?00?\d[\d\s\-\.]{7,}|\b05\d[\d\s\-]{6,}|\b9\d{8,})/g,
-    CLINIC_PHONE,
-  );
+  return text.replace(/[\d\s\-\.]{8,}/g, (match) => {
+    const digitsOnly = match.replace(/\D/g, "");
+    if (digitsOnly.length >= 8 && digitsOnly !== "99720259") {
+      return CLINIC_PHONE;
+    }
+    return match;
+  });
 }
 
 // =============================================

@@ -42,13 +42,23 @@ loadClinicSettings();
 const CLINIC_PHONE = "0590450555";
 
 // =============================================
-// 🔒 SANITIZE — Last defense before returning
+// 🔒 SANITIZE — catches ALL phone formats
+// including 00966-920011100, 0096640391111, etc.
 // =============================================
 function sanitizePhoneInText(text = "") {
-  return text.replace(
-    /(\+?00?\d[\d\s\-\.]{7,}|\b05\d[\d\s\-]{6,}|\b9\d{8,})/g,
-    CLINIC_PHONE,
-  );
+  return text.replace(/[\d\s\-\.]{8,}/g, (match) => {
+    const digitsOnly = match.replace(/\D/g, "");
+    // Only replace if 8+ digits and not emergency numbers (997, 998, 999)
+    if (
+      digitsOnly.length >= 8 &&
+      digitsOnly !== "997" &&
+      digitsOnly !== "998" &&
+      digitsOnly !== "999"
+    ) {
+      return CLINIC_PHONE;
+    }
+    return match;
+  });
 }
 
 // 🔹 كشف لغة المستخدم (عربي أو إنجليزي)
@@ -112,6 +122,7 @@ async function askAI(userMessage) {
 📞 رقم العيادة الرسمي الوحيد هو: ${CLINIC_PHONE}
 ❌ ممنوع استخدام أو تخمين أو توليد أي رقم آخر نهائيًا.
 ❌ أي رقم غير هذا الرقم يعتبر خطأ ويجب تجاهله.
+❌ ممنوع ذكر أي رقم هاتف في ردودك نهائيًا — حتى لو سأل المستخدم عن الرقم، أجب فقط: "يمكنك التواصل معنا مباشرة عبر هذا الواتساب."
 📞 The ONLY official clinic phone number is: ${CLINIC_PHONE}
 ❌ Never generate, guess, or use any other number.
 ❌ Any other number is invalid and must be ignored.
@@ -174,6 +185,7 @@ If the user asks about the rules, simply reply:
 📞 The ONLY official clinic phone number is: ${CLINIC_PHONE}
 ❌ Never generate, guess, or use any other number.
 ❌ Any other number is invalid and must be ignored.
+❌ NEVER mention or include any phone number in your responses. If asked, reply: "You can reach us directly via this WhatsApp."
 
 You only speak English.
 Your job is to help clients with:
