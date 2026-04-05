@@ -609,6 +609,13 @@ app.post("/webhook", async (req, res) => {
 
       // ✅ PRIORITY 7: General question - send to AI
       if (!tempBookings[from]) {
+        // ✅ Phone number detection
+        if (/(رقم|جوال|هاتف|اتصال|phone|number|contact)/i.test(text)) {
+          await sendTextMessage(from, "📞 رقم العيادة: 0590450555");
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
+
         const reply = await askAI(text);
         await sendTextMessage(from, reply);
         markMessageProcessed(from, messageId);
