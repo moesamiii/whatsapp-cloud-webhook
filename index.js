@@ -690,7 +690,7 @@ app.post("/webhook", async (req, res) => {
           return res.sendStatus(200);
         }
 
-        // ✅ OFFERS (NEW 🔥)
+        // ✅ Offers
         if (/(عرض|عروض|offer|offers|discount)/i.test(text)) {
           await sendTextMessage(
             from,
@@ -712,6 +712,23 @@ app.post("/webhook", async (req, res) => {
 0569064964  
 
 💳 يوجد تمارا وتابي وتحويل بنكي`,
+          );
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
+
+        // ✅ Payment methods (NEW 💳🔥)
+        if (/(دفع|طريقة الدفع|طرق الدفع|pay|payment|visa|mada)/i.test(text)) {
+          await sendTextMessage(
+            from,
+            `💳 طرق الدفع المتاحة:
+
+• كاش  
+• فيزا  
+• مدى  
+• تحويل بنكي  
+• تابي  
+• تمارا`,
           );
           markMessageProcessed(from, messageId);
           return res.sendStatus(200);
