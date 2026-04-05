@@ -610,15 +610,16 @@ app.post("/webhook", async (req, res) => {
       // ✅ PRIORITY 7: General question - send to AI
       // ✅ PRIORITY 7: General question - send to AI
       // ✅ PRIORITY 7: General question - send to AI
+      // ✅ PRIORITY 7: General question - send to AI
       if (!tempBookings[from]) {
-        // ✅ Phone number detection
+        // ✅ Phone number
         if (/(رقم|جوال|هاتف|اتصال|phone|number|contact)/i.test(text)) {
           await sendTextMessage(from, "📞 رقم العيادة: 0590450555");
           markMessageProcessed(from, messageId);
           return res.sendStatus(200);
         }
 
-        // ✅ Location detection
+        // ✅ Location
         if (/(موقع|لوكيشن|وين|اين|العنوان|location|map|address)/i.test(text)) {
           await sendTextMessage(
             from,
@@ -628,7 +629,7 @@ app.post("/webhook", async (req, res) => {
           return res.sendStatus(200);
         }
 
-        // ✅ Working hours detection
+        // ✅ Working hours
         if (
           /(دوام|ساعات|متى تفتح|متى تقفل|مواعيد|hours|open|time)/i.test(text)
         ) {
@@ -640,7 +641,32 @@ app.post("/webhook", async (req, res) => {
           return res.sendStatus(200);
         }
 
-        // 🤖 AI reply
+        // ✅ SERVICES (NEW 🔥)
+        if (
+          /(خدمات|service|services|وش عندكم|ايش تقدمون|what do you offer)/i.test(
+            text,
+          )
+        ) {
+          await sendTextMessage(
+            from,
+            `💎 خدماتنا:
+
+• فيلر  
+• بوتكس  
+• محفزات الكولاجين  
+• ليزر  
+• هيدرافيشل  
+• تشقير حواجب  
+• تشقير وجه  
+• فيلر الجسم  
+• تنظيف الأسنان  
+• تنظيف البشرة`,
+          );
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
+
+        // 🤖 AI
         const reply = await askAI(text);
         await sendTextMessage(from, reply);
         markMessageProcessed(from, messageId);
