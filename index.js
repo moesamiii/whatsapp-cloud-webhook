@@ -717,7 +717,7 @@ app.post("/webhook", async (req, res) => {
           return res.sendStatus(200);
         }
 
-        // ✅ Payment methods (NEW 💳🔥)
+        // ✅ Payment methods
         if (/(دفع|طريقة الدفع|طرق الدفع|pay|payment|visa|mada)/i.test(text)) {
           await sendTextMessage(
             from,
@@ -729,6 +729,21 @@ app.post("/webhook", async (req, res) => {
 • تحويل بنكي  
 • تابي  
 • تمارا`,
+          );
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
+
+        // ✅ Social Media (NEW 📱🔥)
+        if (
+          /(انستقرام|انستغرام|instagram|سوشيال|تواصل|social|حساب)/i.test(text)
+        ) {
+          await sendTextMessage(
+            from,
+            `📱 حساباتنا على مواقع التواصل:
+
+Instagram:
+https://www.instagram.com/beverlyhills.clinic?igsh=MXlyM21vcXlkdW5m&utm_source=qr`,
           );
           markMessageProcessed(from, messageId);
           return res.sendStatus(200);
