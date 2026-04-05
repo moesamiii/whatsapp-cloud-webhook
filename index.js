@@ -45,8 +45,8 @@ loadClinicSettings();
 // 📸 DOCTOR DATA (TEXT ONLY)
 // ==============================
 const DOCTOR_INFO = [
-  { name: "د. شيماء عبدالستار", specialization: "طبيب أسنان" },
-  { name: "د. اسراء النقيب", specialization: "طبيب أسنان" },
+  { name: "د. شيماء عبدالستار", specialization: "أخصائية جلدية" },
+  { name: "د. اسراء النقيب", specialization: "أخصائية جلدية" },
 ];
 
 // ==============================
