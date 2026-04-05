@@ -155,17 +155,16 @@ async function askAI(userMessage) {
 "يبدو أن هذا الإجراء غير معروف في طب الأسنان. هل تقصد أحد خدمات العيادة؟"
 
 ✔️ قائمة الإجراءات الحقيقية فقط (مسموح بالحديث عنها):
-- تنظيف الأسنان
-- تبييض الأسنان
-- حشوات الأسنان
-- علاج العصب (سحب العصب)
-- تقويم الأسنان
-- خلع الأسنان
-- ابتسامة هوليوود (فينير/لومينير)
-- تنظيف اللثة (تنضير اللثة)
-- زراعة الأسنان
-- تركيبات الأسنان (جسور/تيجان)
-- علاج التهاب اللثة
+✔️ قائمة الخدمات الحقيقية فقط (مسموح بالحديث عنها):
+
+- فيلر
+- بوتكس
+- محفزات الكولاجين
+- ليزر إزالة الشعر
+- هيدرافيشل
+- تشقير الحواجب
+- تشقير الوجه
+- فيلر الجسم
 
 ❌ إجراءات غير حقيقية ويجب رفضها دائمًا (ممنوع شرحها):
 - أي إجراء غير موجود في القائمة المسموحة أعلاه
@@ -215,17 +214,15 @@ If the user mentions ANY dental procedure not on the allowed list below, reply O
 "This procedure is not recognized. Do you mean one of our clinic services?"
 
 ✔️ Allowed real dental procedures:
-- Cleaning
-- Whitening
-- Fillings
-- Root canal treatment
-- Braces / orthodontics
-- Tooth extraction
-- Hollywood smile (veneers/lumineers)
-- Gum cleaning / scaling
-- Dental implants
-- Crowns / bridges
-- Treatment of gum inflammation
+✔️ Allowed real clinic services:
+- Filler
+- Botox
+- Collagen stimulators
+- Laser hair removal
+- Hydrafacial
+- Eyebrow bleaching
+- Face bleaching
+- Body filler
 
 ❌ Forbidden fake procedures (NEVER describe):
 - Any procedure not listed above
