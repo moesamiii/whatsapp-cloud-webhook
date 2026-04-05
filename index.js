@@ -611,6 +611,7 @@ app.post("/webhook", async (req, res) => {
       // ✅ PRIORITY 7: General question - send to AI
       // ✅ PRIORITY 7: General question - send to AI
       // ✅ PRIORITY 7: General question - send to AI
+      // ✅ PRIORITY 7: General question - send to AI
       if (!tempBookings[from]) {
         // ✅ Phone number
         if (/(رقم|جوال|هاتف|اتصال|phone|number|contact)/i.test(text)) {
@@ -641,7 +642,7 @@ app.post("/webhook", async (req, res) => {
           return res.sendStatus(200);
         }
 
-        // ✅ SERVICES (NEW 🔥)
+        // ✅ Services
         if (
           /(خدمات|service|services|وش عندكم|ايش تقدمون|what do you offer)/i.test(
             text,
@@ -666,7 +667,30 @@ app.post("/webhook", async (req, res) => {
           return res.sendStatus(200);
         }
 
-        // 🤖 AI
+        // ✅ Prices
+        if (/(سعر|اسعار|الاسعار|كم|price|prices|cost)/i.test(text)) {
+          await sendTextMessage(
+            from,
+            `💰 الأسعار:
+
+• 1 مل فيلر — 610 ر.س  
+• 1 مل بوتكس — 540 ر.س  
+• اسكلبترا (10 مل) — 2350 ر.س  
+• ريتش (5 مل) — 1699 ر.س  
+• بروفايلو — 999 ر.س  
+• مورفيس مع بلازما — 850 ر.س  
+• فراكشنال جلسة — 250 ر.س  
+• ابرة السالمون (2.5 مل) — 1199 ر.س  
+• هيدرافيشل — 260 ر.س  
+• هيدرافيشل الملكي — 326 ر.س  
+• ديرما بن — 399 ر.س  
+• ابرة تفتيح التصبغات — 699 ر.س`,
+          );
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
+
+        // 🤖 AI fallback
         const reply = await askAI(text);
         await sendTextMessage(from, reply);
         markMessageProcessed(from, messageId);
