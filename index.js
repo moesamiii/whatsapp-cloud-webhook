@@ -259,7 +259,8 @@ async function askAI(userMessage) {
     const lang = detectLanguage(userMessage);
 
     // ✅ Get dynamic clinic name or use default
-    const clinicName = clinicSettings?.clinic_name || "عيادة ابتسامة";
+
+    const clinicName = clinicSettings?.clinic_name || "عيادات بيفرلي هيلز";
 
     const systemPrompt =
       lang === "ar"
@@ -510,7 +511,7 @@ app.post("/webhook", async (req, res) => {
         const lang = detectLanguage(text);
         const clinicName =
           clinicSettings?.clinic_name ||
-          (lang === "ar" ? "عيادة ابتسامة" : "Ibtisama Clinic");
+          (lang === "ar" ? "عيادات بيفرلي هيلز" : "Beverly Hills Clinic");
 
         const greeting =
           lang === "ar"
