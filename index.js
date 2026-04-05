@@ -690,6 +690,33 @@ app.post("/webhook", async (req, res) => {
           return res.sendStatus(200);
         }
 
+        // ✅ OFFERS (NEW 🔥)
+        if (/(عرض|عروض|offer|offers|discount)/i.test(text)) {
+          await sendTextMessage(
+            from,
+            `🔥 العروض الحالية:
+
+❤️ 4 جلسات ليزر جسم + 4 رتوش (630) + تشقير حواجب هدية  
+❤️ ابرة سكلبترا لشد وتحفيز الكولاجين — 1999  
+❤️ 2 مل فيلر ألماني 1299 والثالث مجاناً  
+❤️ جلسة مورفيس 899 والثانية بريال  
+• جلستين بلازما + جلستين ترانزيمك اسيد 599 + تنظيف بشرة مجاناً  
+❤️ تنظيف أسنان — 99  
+❤️ جلسة اكسوزوم مع ديرمابن — 499  
+• ابرة انوفيال تحت العين (1 مل) — 450  
+❤️ تنظيف بشرة هايدرافيشل 250 + ماسك + تشقير حواجب مجاناً  
+❤️ 3 جلسات تشقير حواجب — 79  
+
+📞 للحجز:
+0536990405  
+0569064964  
+
+💳 يوجد تمارا وتابي وتحويل بنكي`,
+          );
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
+
         // 🤖 AI fallback
         const reply = await askAI(text);
         await sendTextMessage(from, reply);
