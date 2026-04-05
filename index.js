@@ -608,6 +608,7 @@ app.post("/webhook", async (req, res) => {
       }
 
       // ✅ PRIORITY 7: General question - send to AI
+      // ✅ PRIORITY 7: General question - send to AI
       if (!tempBookings[from]) {
         // ✅ Phone number detection
         if (/(رقم|جوال|هاتف|اتصال|phone|number|contact)/i.test(text)) {
@@ -616,6 +617,17 @@ app.post("/webhook", async (req, res) => {
           return res.sendStatus(200);
         }
 
+        // ✅ Location detection
+        if (/(موقع|لوكيشن|وين|اين|location|map|address)/i.test(text)) {
+          await sendTextMessage(
+            from,
+            "📍 موقعنا:\nعيادات بيفرلي هيلز - حي السليمانية\nhttps://maps.app.goo.gl/hDHSJMRJ6hWShciB7?g_st=ic",
+          );
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
+
+        // 🤖 AI reply
         const reply = await askAI(text);
         await sendTextMessage(from, reply);
         markMessageProcessed(from, messageId);
