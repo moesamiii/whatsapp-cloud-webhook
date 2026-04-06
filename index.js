@@ -704,8 +704,8 @@ app.post("/webhook", async (req, res) => {
       // ✅ PRIORITY 4: Start booking
       if (!tempBookings[from] && isBookingRequest(text)) {
         console.log("📅 Starting booking for:", from);
-        tempBookings[from] = {};
-        await sendAppointmentOptions(from);
+        tempBookings[from] = { waitingForName: true };
+        await sendTextMessage(from, "👍 يسعدنا نحجز لك!\n\nأرسل اسمك الكريم:");
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
       }
