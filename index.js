@@ -267,6 +267,12 @@ function isGibberish(text) {
   return meaningfulChars / cleaned.length < 0.4;
 }
 
+function isComplaint(text) {
+  return /(مشكله|مشكلة|احترق|احمرار|ورم|تورم|الم|ألم|وجع|نحرق|حرقان|تقشر|اثار|آثار|جانبيه|جانبية|خطأ|غلط|زبالة|مو زين|ما عجبني|شكوى|complaint|problem|side effect|burn|redness|swelling)/i.test(
+    text,
+  );
+}
+
 function isOffTopic(text) {
   return [
     /(مطعم|وجبة|اكل|طبخ|وصفة|restaurant|food|recipe|cook)/i,
@@ -926,6 +932,16 @@ https://www.instagram.com/beverlyhills.clinic?igsh=MXlyM21vcXlkdW5m&utm_source=q
               ? "ما فهمت قصدك 😅 — ممكن توضح أكثر؟"
               : "Didn't catch that 😅 — could you rephrase?";
           await sendTextMessage(from, msg);
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
+
+        // ✅ Filter 1.5: Complaint check
+        if (isComplaint(text)) {
+          await sendTextMessage(
+            from,
+            "نأسف جداً على هذه التجربة 🙏 — تواصل معنا مباشرة على 0590450555 وسنحرص على حل المشكلة في أقرب وقت.",
+          );
           markMessageProcessed(from, messageId);
           return res.sendStatus(200);
         }
