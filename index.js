@@ -255,6 +255,29 @@ function detectLanguage(text) {
 }
 
 // ==============================
+// 🧹 MESSAGE QUALITY CHECK
+// ==============================
+function isGibberish(text) {
+  const cleaned = text.trim();
+  if (cleaned.length < 3) return true;
+  if (/^[^a-zA-Z\u0600-\u06FF\d]+$/.test(cleaned)) return true;
+  if (/(.)\1{4,}/.test(cleaned)) return true;
+  const meaningfulChars = (cleaned.match(/[a-zA-Z\u0600-\u06FF\d\s]/g) || [])
+    .length;
+  return meaningfulChars / cleaned.length < 0.4;
+}
+
+function isOffTopic(text) {
+  return [
+    /(مطعم|وجبة|اكل|طبخ|وصفة|restaurant|food|recipe|cook)/i,
+    /(كرة|فريق|مباراة|دوري|football|soccer|sport)/i,
+    /(سياسة|انتخاب|حرب|politics|election|war)/i,
+    /(فيلم|مسلسل|اغنية|movie|series|song|netflix)/i,
+    /(طقس|درجة حرارة|مطر|weather|temperature|rain)/i,
+  ].some((pattern) => pattern.test(text));
+}
+
+// ==============================
 // 🧠 CONVERSATION HISTORY
 // ==============================
 const conversationHistory = {};
@@ -339,6 +362,16 @@ async function askAI(userId, userMessage) {
 - اقترح الحجز بشكل طبيعي بعد الإجابة إذا كان مناسباً
 - اختصر الردود (3-4 جمل كحد أقصى)
 - لا تبدأ بـ "أهلاً" أو "مرحباً" في كل رسالة
+
+
+🚫 قواعد إضافية صارمة:
+- لا تبدأ ردك بـ: "بالطبع"، "بكل سرور"، "شكراً لتواصلك"، "سعيد بمساعدتك"
+- لا تكرر سؤال المستخدم في ردك
+- إذا كان السؤال خارج موضوع العيادة رد بجملة واحدة فقط مثل: "هذا خارج تخصصي 😄 — في شيء يخص العيادة أقدر أساعدك فيه؟"
+- إذا ما عندك معلومة قل فقط: "تواصل معنا على 0590450555"
+- لا تعتذر بشكل مبالغ فيه
+- الرد مباشر ومفيد من أول جملة
+
 `
         : `
 You are a professional customer service agent at ${clinicName} - a cosmetic clinic in Riyadh.
@@ -885,8 +918,40 @@ https://www.instagram.com/beverlyhills.clinic?igsh=MXlyM21vcXlkdW5m&utm_source=q
         }
 
         // 🤖 AI fallback
-        const reply = await askAI(from, text);
-        await sendTextMessage(from, reply);
+        // ✅ Filter 1: Gibberish check
+        if (isGibberish(text)) {
+          const lang = detectLanguage(text);
+          const msg =
+            lang === "ar"
+              ? "ما فهمت قصدك 😅 — ممكن توضح أكثر؟"
+              : "Didn't catch that 😅 — could you rephrase?";
+          await sendTextMessage(from, msg);
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
+
+        // ✅ Filter 2: Off-topic check
+        if (isOffTopic(text)) {
+          const lang = detectLanguage(text);
+          const msg =
+            lang === "ar"
+              ? "هذا خارج تخصصي 😄 — في شيء يخص العيادة أقدر أساعدك فيه؟"
+              : "That's outside my area 😄 — can I help you with anything clinic-related?";
+          await sendTextMessage(from, msg);
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
+
+        // ✅ Filter 3: Ask AI + clean the reply
+        const rawReply = await askAI(from, text);
+        const cleanedReply = rawReply
+          .replace(
+            /^(بالطبع[،,!]?\s*|بكل سرور[،,!]?\s*|شكراً لتواصلك[،,!]?\s*|سعيد بمساعدتك[،,!]?\s*|Of course[,!]?\s*|Sure[,!]?\s*)/i,
+            "",
+          )
+          .trim();
+
+        await sendTextMessage(from, cleanedReply || rawReply);
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
       }
