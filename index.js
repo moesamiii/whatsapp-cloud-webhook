@@ -254,100 +254,145 @@ function detectLanguage(text) {
   return /[\u0600-\u06FF]/.test(text) ? "ar" : "en";
 }
 
-async function askAI(userMessage) {
+// ==============================
+// 🧠 CONVERSATION HISTORY
+// ==============================
+const conversationHistory = {};
+const MAX_HISTORY = 6;
+
+function addToHistory(userId, role, content) {
+  if (!conversationHistory[userId]) {
+    conversationHistory[userId] = [];
+  }
+  conversationHistory[userId].push({ role, content });
+  if (conversationHistory[userId].length > MAX_HISTORY) {
+    conversationHistory[userId] =
+      conversationHistory[userId].slice(-MAX_HISTORY);
+  }
+}
+
+setInterval(() => {
+  for (const userId in conversationHistory) {
+    delete conversationHistory[userId];
+  }
+}, 3600000);
+
+// ==============================
+// 🤖 GROQ AI - محسّن
+// ==============================
+async function askAI(userId, userMessage) {
   try {
     const lang = detectLanguage(userMessage);
-
     const clinicName = clinicSettings?.clinic_name || "عيادات بيفرلي هيلز";
 
     const systemPrompt =
       lang === "ar"
         ? `
-أنت موظف خدمة عملاء ومبيعات محترف في ${clinicName} (عيادة تجميل).
+أنت موظف خدمة عملاء محترف في ${clinicName} - عيادة تجميل في الرياض.
 
-هدفك:
-- مساعدة العميل
-- شرح الخدمات بشكل بسيط
-- جعل العميل يشعر بالراحة
-- توجيه العميل للحجز بطريقة ذكية بدون ضغط
+📍 معلومات العيادة:
+- الموقع: حي السليمانية، الرياض
+- رقم الهاتف: 0590450555
+- ساعات العمل: من 2 ظهراً إلى 10 مساءً يومياً
+- الإنستغرام: https://www.instagram.com/beverlyhills.clinic
+- الخريطة: https://maps.app.goo.gl/hDHSJMRJ6hWShciB7
 
-أسلوبك:
-- طبيعي جدًا (كأنك إنسان)
-- لا تكرر الترحيب في كل رسالة
-- لا تبدأ من الصفر كل مرة
-- اختصر الكلام
+💎 الخدمات والأسعار:
+- فيلر (1 مل) — 610 ريال
+- بوتكس (1 مل) — 540 ريال
+- اسكلبترا (10 مل) — 2350 ريال
+- ريتش (5 مل) — 1699 ريال
+- بروفايلو — 999 ريال
+- مورفيس مع بلازما — 850 ريال
+- فراكشنال (جلسة) — 250 ريال
+- ابرة السالمون (2.5 مل) — 1199 ريال
+- هيدرافيشل — 260 ريال
+- هيدرافيشل الملكي — 326 ريال
+- ديرما بن — 399 ريال
+- ابرة تفتيح التصبغات — 699 ريال
+- ليزر، تشقير حواجب، تشقير وجه، فيلر جسم، محفزات كولاجين (اسأل للتسعير)
 
-قواعد:
-- إذا سأل عن خدمة (مثل الليزر):
-  → اشرحها ببساطة
-  → ثم اسأله سؤال يساعدك تفهم احتياجه
+🔥 العروض الحالية:
+- 4 جلسات ليزر جسم + 4 رتوش (630 ريال) + تشقير حواجب هدية
+- اسكلبترا — 1999 ريال
+- 2 مل فيلر ألماني — 1299 ريال والثالث مجاناً
+- مورفيس — 899 ريال والجلسة الثانية بريال
+- جلستين بلازما + جلستين ترانزيمك اسيد — 599 ريال + تنظيف بشرة مجاناً
+- تنظيف أسنان — 99 ريال
+- جلسة اكسوزوم مع ديرمابن — 499 ريال
+- ابرة انوفيال تحت العين (1 مل) — 450 ريال
+- هيدرافيشل — 250 ريال + ماسك + تشقير حواجب مجاناً
+- 3 جلسات تشقير حواجب — 79 ريال
 
-- إذا كان متردد:
-  → طمّنه
+💳 طرق الدفع:
+كاش، فيزا، مدى، تحويل بنكي، تابي، تمارا
 
-- لا تقول "كيف أساعدك" كل مرة
-- لا تكرر نفسك
+👩‍⚕️ فريق الأطباء:
+- د. شيماء عبدالستار — أخصائية جلدية
+- د. اسراء النقيب — أخصائية جلدية
 
-معلومات:
-- الموقع: حي السليمانية
-- الخدمات: ليزر، فيلر، بوتكس، تنظيف بشرة، تنظيف أسنان
-
-مهم:
-- لا تخترع معلومات
+🎯 أسلوبك:
+- أجب دائماً من المعلومات الموجودة أعلاه فقط
+- إذا سألوا عن سعر خدمة غير مذكورة قل: "تواصل معنا على 0590450555 للاستفسار"
+- لا تخترع أسعار أو معلومات
 - لا تعطي تشخيص طبي
+- اقترح الحجز بشكل طبيعي بعد الإجابة إذا كان مناسباً
+- اختصر الردود (3-4 جمل كحد أقصى)
+- لا تبدأ بـ "أهلاً" أو "مرحباً" في كل رسالة
 `
         : `
-You are a professional clinic sales and support agent at ${clinicName}.
+You are a professional customer service agent at ${clinicName} - a cosmetic clinic in Riyadh.
 
-Your goal:
-- Help the user
-- Explain services simply
-- Make the user comfortable
-- Guide toward booking naturally
+📍 Clinic Info:
+- Location: Al-Sulaymaniyah, Riyadh
+- Phone: 0590450555
+- Working hours: 2 PM to 10 PM daily
+- Instagram: https://www.instagram.com/beverlyhills.clinic
 
-Style:
-- Natural like a human
-- Do not repeat greetings
-- Do not restart conversation
-- Keep responses short
+💎 Services & Prices:
+- 1ml Filler — 610 SAR
+- 1ml Botox — 540 SAR
+- Sculptra (10ml) — 2350 SAR
+- Regen (5ml) — 1699 SAR
+- Profhilo — 999 SAR
+- Morpheus with Plasma — 850 SAR
+- Fractional (session) — 250 SAR
+- Salmon injection (2.5ml) — 1199 SAR
+- HydraFacial — 260 SAR
+- Royal HydraFacial — 326 SAR
+- Dermapen — 399 SAR
+- Pigmentation injection — 699 SAR
 
-Rules:
-- If user asks about a service:
-  → explain simply
-  → ask a follow-up question
-
-- If hesitant:
-  → reassure them
-
-- Do not repeat yourself
-- Do not always say "How can I help you"
-
-Clinic info:
-- Location: Sulaymaniyah
-- Services: Laser, fillers, botox, facial, dental cleaning
-
-Important:
-- Do not invent info
-- Do not give medical diagnosis
+🎯 Style:
+- Always answer from the information above only
+- If asked about an unlisted service say: "Contact us at 0590450555 for pricing"
+- Never invent prices or services
+- No medical diagnosis
+- Suggest booking naturally when appropriate
+- Keep responses to 3-4 sentences max
 `;
+
+    addToHistory(userId, "user", userMessage);
 
     const completion = await client.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: userMessage },
+        ...conversationHistory[userId],
       ],
-      temperature: 0.7,
-      max_completion_tokens: 300,
+      temperature: 0.4,
+      max_completion_tokens: 250,
     });
-    let reply = completion.choices[0]?.message?.content || "";
 
-    // ✅ تنظيف الحروف الغريبة
-    reply = reply.replace(/[^\u0600-\u06FFa-zA-Z0-9\s.,!?؟]/g, "");
+    let reply = completion.choices[0]?.message?.content || "";
+    reply = reply.replace(/[^\u0600-\u06FFa-zA-Z0-9\s.,!?؟:()\-\/]/g, "");
+
+    addToHistory(userId, "assistant", reply);
 
     return reply;
-  } catch {
-    return "⚠️ حدث خطأ.";
+  } catch (err) {
+    console.error("❌ AI Error:", err.message);
+    return "عذراً، حدث خطأ. تواصل معنا على 0590450555";
   }
 }
 
@@ -840,7 +885,7 @@ https://www.instagram.com/beverlyhills.clinic?igsh=MXlyM21vcXlkdW5m&utm_source=q
         }
 
         // 🤖 AI fallback
-        const reply = await askAI(text);
+        const reply = await askAI(from, text);
         await sendTextMessage(from, reply);
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
