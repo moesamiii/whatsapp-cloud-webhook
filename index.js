@@ -341,7 +341,12 @@ Important:
       max_completion_tokens: 300,
     });
 
-    return completion.choices[0]?.message?.content || "";
+    let reply = completion.choices[0]?.message?.content || "";
+
+    // ✅ تنظيف الحروف الغريبة
+    reply = reply.replace(/[^\u0600-\u06FFa-zA-Z0-9\s.,!?؟]/g, "");
+
+    return reply;
   } catch {
     return "⚠️ حدث خطأ.";
   }
@@ -444,9 +449,14 @@ async function sendServiceList(to) {
             {
               title: "الخدمات",
               rows: [
-                { id: "service_فحص عام", title: "فحص عام" },
-                { id: "service_تنظيف الأسنان", title: "تنظيف الأسنان" },
-                { id: "service_تبييض الأسنان", title: "تبييض الأسنان" },
+                { id: "service_فيلر", title: "فيلر" },
+                { id: "service_بوتكس", title: "بوتكس" },
+                { id: "service_ليزر", title: "ليزر" },
+                { id: "service_هيدرافيشيل", title: "هيدرافيشيل" },
+                { id: "service_فراكشنال", title: "فراكشنال" },
+                { id: "service_ديرما بن", title: "ديرما بن" },
+                { id: "service_بروفايلو", title: "بروفايلو" },
+                { id: "service_اسكلبترا", title: "اسكلبترا" },
               ],
             },
           ],
@@ -719,21 +729,37 @@ app.post("/webhook", async (req, res) => {
 
 • فيلر  
 • بوتكس  
-• محفزات الكولاجين  
+• محفزات كولاجين  
 • ليزر  
-• هيدرافيشل  
+• هيدرافيشيل  
 • تشقير حواجب  
 • تشقير وجه  
-• فيلر الجسم  
-• تنظيف الأسنان  
-• تنظيف البشرة`,
+• فيلر جسم  
+• ابرة تفتيح التصبغات  
+• ديرما بن  
+• ابرة السالمون  
+• فراكشنال  
+• مورفيس مع بلازما  
+• بروفايلو  
+• ريتش  
+• اسكلبترا`,
+          );
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
+
+        // ✅ TIME QUESTIONS
+        if (/(كم ياخذ|كم يستغرق|مدة|وقت|time|duration)/i.test(text)) {
+          await sendTextMessage(
+            from,
+            "⏱️ جلسة الليزر عادة تستغرق من 10 إلى 20 دقيقة حسب المنطقة 👍",
           );
           markMessageProcessed(from, messageId);
           return res.sendStatus(200);
         }
 
         // ✅ Prices
-        if (/(سعر|اسعار|الاسعار|كم|price|prices|cost)/i.test(text)) {
+        if (/(سعر|اسعار|الاسعار|price|prices|cost)/i.test(text)) {
           await sendTextMessage(
             from,
             `💰 الأسعار:
