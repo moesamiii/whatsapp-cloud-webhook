@@ -254,16 +254,7 @@ function detectLanguage(text) {
   return /[\u0600-\u06FF]/.test(text) ? "ar" : "en";
 }
 
-const conversations = {};
-
-function getConversation(userId) {
-  if (!conversations[userId]) {
-    conversations[userId] = [];
-  }
-  return conversations[userId];
-}
-
-async function askAI(userId, userMessage) {
+async function askAI(userMessage) {
   try {
     const lang = detectLanguage(userMessage);
 
@@ -340,14 +331,11 @@ Important:
 - Do not give medical diagnosis
 `;
 
-    const history = getConversation(userId);
-    history.push({ role: "user", content: userMessage });
-
     const completion = await client.chat.completions.create({
       model: "llama-3.3-70b-versatile",
       messages: [
         { role: "system", content: systemPrompt },
-        ...history.slice(-10),
+        { role: "user", content: userMessage },
       ],
       temperature: 0.7,
       max_completion_tokens: 300,
@@ -852,9 +840,7 @@ https://www.instagram.com/beverlyhills.clinic?igsh=MXlyM21vcXlkdW5m&utm_source=q
         }
 
         // 🤖 AI fallback
-
-        const reply = await askAI(from, text);
-
+        const reply = await askAI(text);
         await sendTextMessage(from, reply);
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
