@@ -449,6 +449,27 @@ async function sendTextMessage(to, text) {
   );
 }
 
+async function sendTemplateMessage(to) {
+  await axios.post(
+    `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`,
+    {
+      messaging_product: "whatsapp",
+      to: to,
+      type: "template",
+      template: {
+        name: "hello_world",
+        language: { code: "en_US" },
+      },
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    },
+  );
+}
+
 // ✅ Send image message
 async function sendImageMessage(to, imageUrl, caption) {
   try {
