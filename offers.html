@@ -1360,9 +1360,9 @@
           };
 
           addDebugLog(`إرسال رسالة إلى ${phone}...`);
-
+          ("https://whatsapp-cloud-webhook-woad.vercel.app/api/sendWhatsApp");
           const res = await fetch(
-            "https://whatsapp-cloud-webhook-woad.vercel.app/api/sendWhatsApp",
+            "https://whatsapp-cloud-webhook-woad.vercel.app/sendWhatsApp",
             {
               method: "POST",
               headers: { "Content-Type": "application/json" },
