@@ -1360,21 +1360,6 @@
 
           const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
 
-          // Step 1: Send template to open conversation window
-          await fetch(baseUrl, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              messaging_product: "whatsapp",
-              to: phone,
-              type: "template",
-              template: { name: "hello_world", language: { code: "en_US" } },
-            }),
-          });
-
-          // Wait 2 seconds
-          await new Promise((r) => setTimeout(r, 2000));
-
           // Step 2: Send the actual offer
           if (imageUrl) {
             await fetch(baseUrl, {
