@@ -970,7 +970,8 @@
         }
 
         // Clean phone number
-        phone = phone.replace(/[\s\-\(\)]/g, "");
+
+        phone = phone.replace(/[\s\-\(\)\+]/g, "");
 
         // Check if already exists
         if (recipientPhones.some((p) => p.phone === phone)) {
@@ -1348,40 +1349,59 @@
       // 📤 Send single message with image - ✅ UPDATED to use dynamic clinic name
       async function sendWhatsAppMessage(phone, messageText, imageUrl) {
         try {
-          // ✅ Use dynamic clinic name from settings
-          const clinicNameForMessage = clinicSettings?.clinic_name || "Clinic";
+          const PHONE_NUMBER_ID = "1039766262557024";
+          const ACCESS_TOKEN =
+            "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy"; // paste your full token here
 
-          const payload = {
-            name: clinicNameForMessage,
-            phone: phone,
-            service: document.getElementById("offerTitle").value.trim(),
-            appointment: messageText,
-            image: imageUrl,
+          const headers = {
+            Authorization: `Bearer ${ACCESS_TOKEN}`,
+            "Content-Type": "application/json",
           };
 
-          addDebugLog(`إرسال رسالة إلى ${phone}...`);
+          const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
 
-          const res = await fetch(
-            "https://whatsapp-cloud-webhook-woad.vercel.app/api/sendWhatsApp",
-            {
+          // Step 1: Send template to open conversation window
+          await fetch(baseUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: phone,
+              type: "template",
+              template: { name: "hello_world", language: { code: "en_US" } },
+            }),
+          });
+
+          // Wait 2 seconds
+          await new Promise((r) => setTimeout(r, 2000));
+
+          // Step 2: Send the actual offer
+          if (imageUrl) {
+            await fetch(baseUrl, {
               method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
-            },
-          );
-
-          const data = await res.json();
-
-          if (data.success) {
-            addDebugLog(`✅ تم إرسال رسالة إلى ${phone} بنجاح`, "success");
-            return true;
+              headers,
+              body: JSON.stringify({
+                messaging_product: "whatsapp",
+                to: phone,
+                type: "image",
+                image: { link: imageUrl, caption: messageText },
+              }),
+            });
           } else {
-            addDebugLog(
-              `فشل إرسال رسالة إلى ${phone}: ${JSON.stringify(data)}`,
-              "error",
-            );
-            return false;
+            await fetch(baseUrl, {
+              method: "POST",
+              headers,
+              body: JSON.stringify({
+                messaging_product: "whatsapp",
+                to: phone,
+                type: "text",
+                text: { body: messageText },
+              }),
+            });
           }
+
+          addDebugLog(`✅ تم إرسال رسالة إلى ${phone} بنجاح`, "success");
+          return true;
         } catch (err) {
           addDebugLog(
             `خطأ في إرسال الرسالة إلى ${phone}: ${err.message}`,
