@@ -97,4 +97,4 @@ async function sendWhatsApp(req, res) {
   }
 }
 
-export { sendWhatsApp };
+export default sendWhatsApp;
