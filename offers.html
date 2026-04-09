@@ -1361,9 +1361,9 @@
 
           const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
 
-          // ✅ STEP 1: Send hello_world template to open conversation window
+          // ✅ STEP 1: Send hello_world template
           addDebugLog(`📤 إرسال القالب إلى ${phone}...`);
-          await fetch(baseUrl, {
+          const templateRes = await fetch(baseUrl, {
             method: "POST",
             headers,
             body: JSON.stringify({
@@ -1376,41 +1376,52 @@
               },
             }),
           });
+          const templateData = await templateRes.json();
+          addDebugLog(`📋 رد القالب: ${JSON.stringify(templateData)}`);
 
-          // ✅ STEP 2: Wait 2 seconds for window to open
+          // ✅ STEP 2: Wait 2 seconds
           await new Promise((resolve) => setTimeout(resolve, 2000));
 
-          // ✅ STEP 3: Send the actual offer
-          addDebugLog(`📨 إرسال العرض إلى ${phone}...`);
+          // ✅ STEP 3: Send actual offer
+          addDebugLog(`📨 إرسال العرض إلى ${phone}... imageUrl=${imageUrl}`);
+
+          let offerBody;
           if (imageUrl) {
-            await fetch(baseUrl, {
-              method: "POST",
-              headers,
-              body: JSON.stringify({
-                messaging_product: "whatsapp",
-                to: phone,
-                type: "image",
-                image: { link: imageUrl, caption: messageText },
-              }),
-            });
+            offerBody = {
+              messaging_product: "whatsapp",
+              to: phone,
+              type: "image",
+              image: { link: imageUrl, caption: messageText },
+            };
           } else {
-            await fetch(baseUrl, {
-              method: "POST",
-              headers,
-              body: JSON.stringify({
-                messaging_product: "whatsapp",
-                to: phone,
-                type: "text",
-                text: { body: messageText },
-              }),
-            });
+            offerBody = {
+              messaging_product: "whatsapp",
+              to: phone,
+              type: "text",
+              text: { body: messageText },
+            };
+          }
+
+          addDebugLog(`📦 بيانات الإرسال: ${JSON.stringify(offerBody)}`);
+
+          const offerRes = await fetch(baseUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(offerBody),
+          });
+          const offerData = await offerRes.json();
+          addDebugLog(`📋 رد العرض: ${JSON.stringify(offerData)}`);
+
+          if (offerData.error) {
+            addDebugLog(`❌ خطأ من API: ${offerData.error.message}`, "error");
+            return false;
           }
 
           addDebugLog(`✅ تم إرسال العرض إلى ${phone} بنجاح`, "success");
           return true;
         } catch (err) {
           addDebugLog(
-            `خطأ في إرسال الرسالة إلى ${phone}: ${err.message}`,
+            `❌ خطأ في إرسال الرسالة إلى ${phone}: ${err.message}`,
             "error",
           );
           return false;
