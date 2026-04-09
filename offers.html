@@ -1347,11 +1347,12 @@
       }
 
       // 📤 Send single message with image - ✅ UPDATED to use dynamic clinic name
+
       async function sendWhatsAppMessage(phone, messageText, imageUrl) {
         try {
           const PHONE_NUMBER_ID = "1039766262557024";
           const ACCESS_TOKEN =
-            "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy"; // paste your full token here
+            "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
 
           const headers = {
             Authorization: `Bearer ${ACCESS_TOKEN}`,
@@ -1360,7 +1361,27 @@
 
           const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
 
-          // Step 2: Send the actual offer
+          // ✅ STEP 1: Send hello_world template to open conversation window
+          addDebugLog(`📤 إرسال القالب إلى ${phone}...`);
+          await fetch(baseUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: phone,
+              type: "template",
+              template: {
+                name: "hello_world",
+                language: { code: "en_US" },
+              },
+            }),
+          });
+
+          // ✅ STEP 2: Wait 2 seconds for window to open
+          await new Promise((resolve) => setTimeout(resolve, 2000));
+
+          // ✅ STEP 3: Send the actual offer
+          addDebugLog(`📨 إرسال العرض إلى ${phone}...`);
           if (imageUrl) {
             await fetch(baseUrl, {
               method: "POST",
@@ -1385,7 +1406,7 @@
             });
           }
 
-          addDebugLog(`✅ تم إرسال رسالة إلى ${phone} بنجاح`, "success");
+          addDebugLog(`✅ تم إرسال العرض إلى ${phone} بنجاح`, "success");
           return true;
         } catch (err) {
           addDebugLog(
@@ -1395,7 +1416,6 @@
           return false;
         }
       }
-
       // 🚀 Main send offer function
       async function sendOffer() {
         const sendBtn = document.getElementById("sendBtn");
