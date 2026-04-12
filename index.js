@@ -191,7 +191,6 @@ async function insertBookingToSupabase(booking) {
         phone: booking.phone,
         service: booking.service,
         appointment: booking.appointment,
-        time: booking.time, // 👈 ADD THIS LINE
         status: "new",
       },
     ]);
@@ -506,49 +505,36 @@ async function sendDoctorInfo(to) {
 }
 
 async function sendAppointmentOptions(to) {
-  try {
-    // ✅ Safe default times always work
-    const bookingTimes =
-      clinicSettings?.booking_times &&
-      Array.isArray(clinicSettings.booking_times) &&
-      clinicSettings.booking_times.length > 0
-        ? clinicSettings.booking_times
-        : ["3 PM", "6 PM", "9 PM"];
+  // ✅ Get dynamic booking times or use defaults
+  const bookingTimes = clinicSettings?.booking_times || [
+    "3 PM",
+    "6 PM",
+    "9 PM",
+  ];
 
-    const buttons = bookingTimes.slice(0, 3).map((time) => ({
-      type: "reply",
-      reply: {
-        id: `slot_${time.toLowerCase().replace(/\s/g, "")}`,
-        title: time,
-      },
-    }));
+  // ✅ Build buttons dynamically from database settings
+  const buttons = bookingTimes.slice(0, 3).map((time) => ({
+    type: "reply",
+    reply: {
+      id: `slot_${time.toLowerCase().replace(/\s/g, "")}`,
+      title: time,
+    },
+  }));
 
-    await axios.post(
-      `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`,
-      {
-        messaging_product: "whatsapp",
-        to,
-        type: "interactive",
-        interactive: {
-          type: "button",
-          body: { text: "📅 اختر الموعد المناسب لك:" },
-          action: { buttons },
-        },
-      },
-      { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } },
-    );
-    console.log("✅ Appointment options sent to:", to);
-  } catch (err) {
-    console.error(
-      "❌ sendAppointmentOptions error:",
-      err.response?.data || err.message,
-    );
-    // Fallback: send text if buttons fail
-    await sendTextMessage(
+  await axios.post(
+    `https://graph.facebook.com/v19.0/${PHONE_NUMBER_ID}/messages`,
+    {
+      messaging_product: "whatsapp",
       to,
-      "📅 اختر وقت الموعد:\n1️⃣ 3 PM\n2️⃣ 6 PM\n3️⃣ 9 PM\n\nأرسل الرقم (1، 2، أو 3):",
-    );
-  }
+      type: "interactive",
+      interactive: {
+        type: "button",
+        body: { text: "📅 اختر الموعد المناسب لك:" },
+        action: { buttons },
+      },
+    },
+    { headers: { Authorization: `Bearer ${WHATSAPP_TOKEN}` } },
+  );
 }
 
 async function sendServiceList(to) {
@@ -660,13 +646,11 @@ app.post("/webhook", async (req, res) => {
         message.interactive?.list_reply?.id ||
         message.interactive?.button_reply?.id;
 
-      // NEW - CORRECT
       if (id.startsWith("slot_")) {
-        const selectedTime = id.replace("slot_", "").toUpperCase();
-        if (!tempBookings[from]) tempBookings[from] = {};
-        tempBookings[from].appointment = selectedTime;
-        tempBookings[from].time = selectedTime;
-        await sendServiceList(from);
+        tempBookings[from] = {
+          appointment: id.replace("slot_", "").toUpperCase(),
+        };
+        await sendTextMessage(from, "👍 أرسل اسمك:");
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
       }
@@ -795,39 +779,13 @@ app.post("/webhook", async (req, res) => {
       }
 
       // ✅ PRIORITY 6: In booking flow - collect phone
-      // NEW - CORRECT
       if (tempBookings[from] && !tempBookings[from].phone) {
         tempBookings[from].phone = text.replace(/\D/g, "");
-        await sendAppointmentOptions(from);
+        await sendServiceList(from);
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
       }
 
-      // ✅ PRIORITY 6.5: User in booking, has phone, no appointment yet - handle text time selection
-      if (
-        tempBookings[from] &&
-        tempBookings[from].phone &&
-        !tempBookings[from].appointment
-      ) {
-        const timeMap = {
-          1: "3PM",
-          2: "6PM",
-          3: "9PM",
-          "3pm": "3PM",
-          "6pm": "6PM",
-          "9pm": "9PM",
-        };
-        const selected = timeMap[text.trim().toLowerCase()];
-        if (selected) {
-          tempBookings[from].appointment = selected;
-          tempBookings[from].time = selected;
-          await sendServiceList(from);
-        } else {
-          await sendAppointmentOptions(from);
-        }
-        markMessageProcessed(from, messageId);
-        return res.sendStatus(200);
-      }
       // ✅ PRIORITY 7: General question - send to AI
       // ✅ PRIORITY 7: General question - send to AI
       // ✅ PRIORITY 7: General question - send to AI
