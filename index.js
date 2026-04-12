@@ -191,6 +191,7 @@ async function insertBookingToSupabase(booking) {
         phone: booking.phone,
         service: booking.service,
         appointment: booking.appointment,
+        time: new Date().toISOString(), // ✅ ADD THIS LINE
         status: "new",
       },
     ]);
