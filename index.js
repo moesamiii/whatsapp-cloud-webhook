@@ -664,7 +664,7 @@ app.post("/webhook", async (req, res) => {
 
         await sendTextMessage(
           from,
-          `✅ تم تأكيد الحجز:\n👤 ${booking.name}\n📱 ${booking.phone}\n💊 ${booking.service}\n📅 ${booking.appointment}`,
+          `✅ تم تأكيد الحجز:\n👤 ${booking.name}\n📱 ${booking.phone}\n💊 ${booking.service}`,
         );
 
         delete tempBookings[from];
