@@ -1346,22 +1346,35 @@
         }
       }
 
-      // 📤 Send single message with image - ✅ UPDATED to use dynamic clinic name
-      async function sendWhatsAppMessage(phone, messageText, imageUrl) {
+      async function sendWhatsAppMessage(phone, title, desc, date, imageUrl) {
         try {
           const PHONE_NUMBER_ID = "1039766262557024";
           const ACCESS_TOKEN =
             "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
-
+          const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
           const headers = {
             Authorization: `Bearer ${ACCESS_TOKEN}`,
             "Content-Type": "application/json",
           };
 
-          const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
+          const components = [];
 
-          // ✅ STEP 1: Send hello_world template first
-          addDebugLog(`📤 إرسال القالب إلى ${phone}...`);
+          if (imageUrl) {
+            components.push({
+              type: "header",
+              parameters: [{ type: "image", image: { link: imageUrl } }],
+            });
+          }
+
+          components.push({
+            type: "body",
+            parameters: [
+              { type: "text", text: title },
+              { type: "text", text: desc },
+              { type: "text", text: date },
+            ],
+          });
+
           await fetch(baseUrl, {
             method: "POST",
             headers,
@@ -1370,48 +1383,17 @@
               to: phone,
               type: "template",
               template: {
-                name: "hello_world",
-                language: { code: "en_US" },
+                name: "clinic_offer",
+                language: { code: "ar" },
+                components,
               },
             }),
           });
 
-          // ✅ STEP 2: Wait 2 seconds
-          await new Promise((resolve) => setTimeout(resolve, 2000));
-
-          // ✅ STEP 3: Send the actual offer details
-          addDebugLog(`📨 إرسال العرض إلى ${phone}...`);
-          if (imageUrl) {
-            await fetch(baseUrl, {
-              method: "POST",
-              headers,
-              body: JSON.stringify({
-                messaging_product: "whatsapp",
-                to: phone,
-                type: "image",
-                image: { link: imageUrl, caption: messageText },
-              }),
-            });
-          } else {
-            await fetch(baseUrl, {
-              method: "POST",
-              headers,
-              body: JSON.stringify({
-                messaging_product: "whatsapp",
-                to: phone,
-                type: "text",
-                text: { body: messageText },
-              }),
-            });
-          }
-
-          addDebugLog(`✅ تم إرسال رسالة إلى ${phone} بنجاح`, "success");
+          addDebugLog(`✅ تم إرسال العرض إلى ${phone}`, "success");
           return true;
         } catch (err) {
-          addDebugLog(
-            `خطأ في إرسال الرسالة إلى ${phone}: ${err.message}`,
-            "error",
-          );
+          addDebugLog(`❌ خطأ: ${err.message}`, "error");
           return false;
         }
       }
@@ -1483,10 +1465,13 @@
 
             if (uploadedImageUrls.length === 0) {
               // No images - send text only
+
               const success = await sendWhatsAppMessage(
                 recipient.phone,
-                messageText,
-                null,
+                title,
+                desc,
+                date,
+                uploadedImageUrls[0] || null,
               );
               if (success) totalSuccess++;
               else totalFail++;
