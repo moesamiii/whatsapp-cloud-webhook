@@ -191,6 +191,7 @@ async function insertBookingToSupabase(booking) {
         phone: booking.phone,
         service: booking.service,
         appointment: booking.appointment,
+        time: booking.time, // 👈 ADD THIS LINE
         status: "new",
       },
     ]);
@@ -646,11 +647,13 @@ app.post("/webhook", async (req, res) => {
         message.interactive?.list_reply?.id ||
         message.interactive?.button_reply?.id;
 
+      // NEW - CORRECT
       if (id.startsWith("slot_")) {
-        tempBookings[from] = {
-          appointment: id.replace("slot_", "").toUpperCase(),
-        };
-        await sendTextMessage(from, "👍 أرسل اسمك:");
+        const selectedTime = id.replace("slot_", "").toUpperCase();
+        if (!tempBookings[from]) tempBookings[from] = {};
+        tempBookings[from].appointment = selectedTime;
+        tempBookings[from].time = selectedTime;
+        await sendServiceList(from);
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
       }
@@ -779,9 +782,10 @@ app.post("/webhook", async (req, res) => {
       }
 
       // ✅ PRIORITY 6: In booking flow - collect phone
+      // NEW - CORRECT
       if (tempBookings[from] && !tempBookings[from].phone) {
         tempBookings[from].phone = text.replace(/\D/g, "");
-        await sendServiceList(from);
+        await sendAppointmentOptions(from);
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
       }
