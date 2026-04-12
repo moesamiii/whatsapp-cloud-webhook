@@ -1375,7 +1375,7 @@
             ],
           });
 
-          await fetch(baseUrl, {
+          const response = await fetch(baseUrl, {
             method: "POST",
             headers,
             body: JSON.stringify({
@@ -1389,6 +1389,12 @@
               },
             }),
           });
+
+          const result = await response.json();
+          if (!response.ok) {
+            addDebugLog(`❌ API Error: ${JSON.stringify(result)}`, "error");
+            return false;
+          }
 
           addDebugLog(`✅ تم إرسال العرض إلى ${phone}`, "success");
           return true;
@@ -1464,23 +1470,22 @@
             );
 
             if (uploadedImageUrls.length === 0) {
-              // No images - send text only
-
               const success = await sendWhatsAppMessage(
                 recipient.phone,
                 title,
                 desc,
                 date,
-                uploadedImageUrls[0] || null,
+                null,
               );
               if (success) totalSuccess++;
               else totalFail++;
             } else {
-              // Send each image
               for (let j = 0; j < uploadedImageUrls.length; j++) {
                 const success = await sendWhatsAppMessage(
                   recipient.phone,
-                  messageText,
+                  title,
+                  desc,
+                  date,
                   uploadedImageUrls[j],
                 );
                 if (success) totalSuccess++;
