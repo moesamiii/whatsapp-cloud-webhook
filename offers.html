@@ -1312,9 +1312,9 @@
           components.push({
             type: "body",
             parameters: [
-              { type: "text", text: title },
-              { type: "text", text: desc },
-              { type: "text", text: date },
+              { type: "text", text: sanitizeTemplateParam(title) },
+              { type: "text", text: sanitizeTemplateParam(desc) },
+              { type: "text", text: sanitizeTemplateParam(date) },
             ],
           });
 
@@ -1363,6 +1363,13 @@
           addDebugLog(`❌ Exception: ${err.message}`, "error");
           return false;
         }
+      }
+
+      function sanitizeTemplateParam(text) {
+        return String(text)
+          .replace(/[\n\r\t]/g, " ")
+          .replace(/ {4,}/g, "   ")
+          .trim();
       }
       // 🚀 Main send offer function
       async function sendOffer() {
