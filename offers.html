@@ -676,68 +676,7 @@
               </div>
 
               <!-- ✅ NEW: Load from Bookings Section -->
-              <div class="load-section">
-                <div class="load-section-title">
-                  <i class="fa-solid fa-database"></i>
-                  تحميل من الحجوزات وجهات الاتصال
-                </div>
 
-                <!-- Service Filter -->
-                <div class="filter-row">
-                  <label>فلترة حسب الخدمة:</label>
-                  <select id="serviceFilter">
-                    <option value="all">جميع الخدمات</option>
-                    <!-- Options will be populated dynamically -->
-                  </select>
-                </div>
-
-                <!-- Status Filter -->
-                <div class="filter-row">
-                  <label>فلترة حسب الحالة:</label>
-                  <select id="statusFilter">
-                    <option value="all">جميع الحالات</option>
-                    <option value="new">جديد</option>
-                    <option value="Contacted">تم التواصل</option>
-                    <option value="Booking Complete">تم الحجز</option>
-                    <option value="SentNoReply">تم الإرسال ولم يتم الرد</option>
-                    <option value="Canceled">ملغى</option>
-                  </select>
-                </div>
-
-                <!-- Load Buttons -->
-                <div class="load-buttons">
-                  <button
-                    class="load-contacts-btn"
-                    onclick="loadFilteredBookings()"
-                  >
-                    <i class="fa-solid fa-filter"></i>
-                    تحميل حسب الفلتر
-                  </button>
-                  <button class="load-all-btn" onclick="loadAllContacts()">
-                    <i class="fa-solid fa-users"></i>
-                    تحميل الكل
-                  </button>
-                  <button
-                    class="load-contacts-btn"
-                    onclick="loadFromContactList()"
-                    style="
-                      background: linear-gradient(
-                        135deg,
-                        #f59e0b 0%,
-                        #d97706 100%
-                      );
-                    "
-                  >
-                    <i class="fa-solid fa-address-book"></i>
-                    من قائمة التواصل
-                  </button>
-                </div>
-
-                <!-- Service Stats -->
-                <div class="service-stats" id="serviceStats">
-                  <!-- Will be populated dynamically -->
-                </div>
-              </div>
               <!-- ✅ END Load Section -->
 
               <!-- Phone List -->
