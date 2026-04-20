@@ -1342,7 +1342,9 @@
           const PHONE_NUMBER_ID = "1039766262557024";
           const ACCESS_TOKEN =
             "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
+
           const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
+
           const headers = {
             Authorization: `Bearer ${ACCESS_TOKEN}`,
             "Content-Type": "application/json",
@@ -1382,15 +1384,33 @@
           });
 
           const result = await response.json();
+
+          // 🔍 ALWAYS log full response
+          addDebugLog(
+            `📩 WhatsApp Response for ${phone}: ${JSON.stringify(result)}`,
+          );
+
           if (!response.ok) {
-            addDebugLog(`❌ API Error: ${JSON.stringify(result)}`, "error");
+            addDebugLog(`❌ API Error for ${phone}`, "error");
             return false;
           }
 
-          addDebugLog(`✅ تم إرسال العرض إلى ${phone}`, "success");
-          return true;
+          // ✅ REAL success check (message ID must exist)
+          if (result.messages && result.messages[0] && result.messages[0].id) {
+            addDebugLog(
+              `✅ Message sent to ${phone} | ID: ${result.messages[0].id}`,
+              "success",
+            );
+            return true;
+          } else {
+            addDebugLog(
+              `⚠️ Message not confirmed (no ID) for ${phone}`,
+              "warning",
+            );
+            return false;
+          }
         } catch (err) {
-          addDebugLog(`❌ خطأ: ${err.message}`, "error");
+          addDebugLog(`❌ Exception: ${err.message}`, "error");
           return false;
         }
       }
