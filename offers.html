@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>إرسال العروض المخصصة</title>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
     <link rel="icon" href="/img/dummy-conan.jpeg" type="image/jpeg" />
     <link
@@ -669,6 +670,11 @@
                   placeholder="اسم المستلم (اختياري)"
                   onkeypress="if (event.key === 'Enter') addPhoneNumber();"
                 />
+                <input type="file" id="excelFile" accept=".xlsx,.xls" />
+                <button class="add-phone-btn" onclick="importExcel()">
+                  <i class="fa-solid fa-file-excel"></i>
+                  استيراد من Excel
+                </button>
                 <button class="add-phone-btn" onclick="addPhoneNumber()">
                   <i class="fa-solid fa-plus"></i>
                   إضافة
@@ -1501,6 +1507,58 @@
 
       // Initialize phone list on page load
       renderPhoneList();
+    </script>
+
+    <script>
+      async function importExcel() {
+        const fileInput = document.getElementById("excelFile");
+
+        if (!fileInput.files.length) {
+          showToast("يرجى اختيار ملف Excel", "error");
+          return;
+        }
+
+        const file = fileInput.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: "array" });
+
+          const sheetName = workbook.SheetNames[0];
+          const sheet = workbook.Sheets[sheetName];
+
+          const jsonData = XLSX.utils.sheet_to_json(sheet);
+
+          let addedCount = 0;
+
+          jsonData.forEach((row) => {
+            let name = row.name || row.Name || row.الاسم || "مستلم";
+            let phone =
+              row.phone || row.Phone || row.رقم || row.number || row.Number;
+
+            if (!phone) return;
+
+            phone = phone.toString().replace(/[\s\-\(\)\+]/g, "");
+
+            if (!recipientPhones.some((p) => p.phone === phone)) {
+              recipientPhones.push({ phone, name });
+              addedCount++;
+            }
+          });
+
+          renderPhoneList();
+
+          if (addedCount > 0) {
+            showToast(`تم إضافة ${addedCount} رقم`);
+            addDebugLog(`تم استيراد ${addedCount} رقم من Excel`, "success");
+          } else {
+            showToast("لا توجد أرقام جديدة", "warning");
+          }
+        };
+
+        reader.readAsArrayBuffer(file);
+      }
     </script>
   </body>
 </html>
