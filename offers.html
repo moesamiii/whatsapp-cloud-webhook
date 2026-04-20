@@ -12,8 +12,6 @@
     />
     <link rel="stylesheet" href="./dashboard.css" />
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <style>
       .settings-container {
         padding: 30px;
@@ -783,6 +781,7 @@
     <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
       // 🔑 Supabase configuration
       const SUPABASE_URL = "https://ylsbmxedhycjqaorjkvm.supabase.co";
@@ -1237,14 +1236,12 @@
         document.getElementById("dashboardContent").style.display = "none";
       }
 
-      window.addEventListener("load", function () {
-        if (localStorage.getItem("clinic_logged_in") === "true") {
-          document.getElementById("loginScreen").style.display = "none";
-          document.getElementById("dashboardContent").style.display = "block";
-          loadClinicSettings();
-          loadBookingsData();
-        }
-      });
+      if (localStorage.getItem("clinic_logged_in") === "true") {
+        document.getElementById("loginScreen").style.display = "none";
+        document.getElementById("dashboardContent").style.display = "block";
+        loadClinicSettings(); // ✅ Load settings on startup
+        loadBookingsData(); // Load bookings on page load
+      }
 
       // 🌙 Theme toggle
       const themeToggle = document.getElementById("themeToggle");

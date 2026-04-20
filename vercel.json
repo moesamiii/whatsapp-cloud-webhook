@@ -10,8 +10,6 @@
     { "src": "/img/(.*)", "dest": "/img/$1" },
     { "src": "/(.*\\.css)", "dest": "/$1" },
     { "src": "/(.*\\.html)", "dest": "/$1" },
-    { "src": "/webhook", "dest": "index.js" },
-    { "src": "/api/(.*)", "dest": "index.js" },
-    { "src": "/", "dest": "/dashboard.html" }
+    { "src": "/(.*)", "dest": "index.js" }
   ]
 }
