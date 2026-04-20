@@ -1339,55 +1339,30 @@
 
       async function sendWhatsAppMessage(phone, title, desc, date, imageUrl) {
         try {
-          const PHONE_NUMBER_ID = "1039766262557024";
-          const ACCESS_TOKEN =
-            "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
-          const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
-          const headers = {
-            Authorization: `Bearer ${ACCESS_TOKEN}`,
-            "Content-Type": "application/json",
-          };
+          addDebugLog(`إرسال إلى: ${phone}`);
 
-          const components = [];
-
-          if (imageUrl) {
-            components.push({
-              type: "header",
-              parameters: [{ type: "image", image: { link: imageUrl } }],
-            });
-          }
-
-          components.push({
-            type: "body",
-            parameters: [
-              { type: "text", text: title },
-              { type: "text", text: desc },
-              { type: "text", text: date },
-            ],
-          });
-
-          const response = await fetch(baseUrl, {
+          const response = await fetch("/api/sendWhatsApp", {
             method: "POST",
-            headers,
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              messaging_product: "whatsapp",
-              to: phone,
-              type: "template",
-              template: {
-                name: "clinic_offer",
-                language: { code: "ar" },
-                components,
-              },
+              phone: phone,
+              service: title,
+              appointment: `📢 ${title}\n\n${desc}\n\n⏰ صالح حتى: ${date}`,
+              image: imageUrl || null,
             }),
           });
 
           const result = await response.json();
-          if (!response.ok) {
-            addDebugLog(`❌ API Error: ${JSON.stringify(result)}`, "error");
+
+          if (!response.ok || !result.success) {
+            addDebugLog(
+              `❌ فشل الإرسال إلى ${phone}: ${JSON.stringify(result)}`,
+              "error",
+            );
             return false;
           }
 
-          addDebugLog(`✅ تم إرسال العرض إلى ${phone}`, "success");
+          addDebugLog(`✅ تم الإرسال إلى ${phone}`, "success");
           return true;
         } catch (err) {
           addDebugLog(`❌ خطأ: ${err.message}`, "error");
