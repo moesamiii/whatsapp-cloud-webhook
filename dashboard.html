@@ -575,9 +575,14 @@
 
       // ✅ Load settings and data on startup if already logged in
       if (localStorage.getItem("clinic_logged_in") === "true") {
-        loadClinicSettings(); // ✅ Load clinic settings
+        loadClinicSettings();
         load();
         setInterval(load, 15000);
+
+        // ✅ Keep server alive every 5 minutes
+        setInterval(() => {
+          fetch(window.location.origin + "/offers.html", { method: "HEAD" });
+        }, 300000);
       }
     </script>
   </body>
