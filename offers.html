@@ -675,6 +675,11 @@
                   <i class="fa-solid fa-file-excel"></i>
                   استيراد من Excel
                 </button>
+                <!-- ✅ ADD THIS -->
+                <button class="add-phone-btn" onclick="downloadTemplate()">
+                  <i class="fa-solid fa-download"></i>
+                  تحميل نموذج Excel
+                </button>
                 <button class="add-phone-btn" onclick="addPhoneNumber()">
                   <i class="fa-solid fa-plus"></i>
                   إضافة
@@ -1509,6 +1514,20 @@
       renderPhoneList();
     </script>
 
+    <script>
+      function downloadTemplate() {
+        const data = [
+          { name: "Ramzi", phone: "9627XXXXXXX" },
+          { name: "Ahmad", phone: "9627XXXXXXX" },
+        ];
+
+        const worksheet = XLSX.utils.json_to_sheet(data);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Contacts");
+
+        XLSX.writeFile(workbook, "template.xlsx");
+      }
+    </script>
     <script>
       async function importExcel() {
         const fileInput = document.getElementById("excelFile");
