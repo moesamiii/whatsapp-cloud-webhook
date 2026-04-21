@@ -1451,12 +1451,33 @@
             );
 
             if (uploadedImageUrls.length === 0) {
+              // 1. رسالة template (مختصرة)
               const success = await sendWhatsAppMessage(
                 recipient.phone,
                 title,
-                desc,
+                " ", // نخليها فاضية عشان ما تتلخبط
                 date,
                 null,
+              );
+
+              // 2. رسالة تفاصيل (text عادي - هنا يجي التنسيق)
+              await fetch(
+                `https://graph.facebook.com/v25.0/1039766262557024/messages`,
+                {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy`,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    messaging_product: "whatsapp",
+                    to: recipient.phone,
+                    type: "text",
+                    text: {
+                      body: `📋 التفاصيل:\n\n${desc}`,
+                    },
+                  }),
+                },
               );
               if (success) totalSuccess++;
               else totalFail++;
