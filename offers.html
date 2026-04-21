@@ -1371,6 +1371,19 @@
           .replace(/ {4,}/g, "   ")
           .trim();
       }
+
+      function getSmartDelay(index) {
+        // Random delay between 4–8 seconds
+        const baseDelay = 4000 + Math.random() * 4000;
+
+        // Every 10 messages → longer break (20–40 seconds)
+        if ((index + 1) % 10 === 0) {
+          const cooldown = 20000 + Math.random() * 20000;
+          return cooldown;
+        }
+
+        return baseDelay;
+      }
       // 🚀 Main send offer function
       async function sendOffer() {
         const sendBtn = document.getElementById("sendBtn");
@@ -1461,14 +1474,24 @@
 
                 // Wait between messages to avoid rate limiting
                 if (j < uploadedImageUrls.length - 1) {
-                  await new Promise((resolve) => setTimeout(resolve, 1500));
+                  const imageDelay = 2000 + Math.random() * 1000; // 2–3 seconds
+                  await new Promise((resolve) =>
+                    setTimeout(resolve, imageDelay),
+                  );
                 }
               }
             }
 
             // Wait between recipients
+            // Smart delay between recipients
             if (i < recipientPhones.length - 1) {
-              await new Promise((resolve) => setTimeout(resolve, 2000));
+              const delay = getSmartDelay(i);
+
+              updateProgress(
+                `⏳ انتظار ${(delay / 1000).toFixed(1)} ثانية قبل الإرسال التالي...`,
+              );
+
+              await new Promise((resolve) => setTimeout(resolve, delay));
             }
           }
 
