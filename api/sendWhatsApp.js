@@ -52,26 +52,11 @@ export default async function handler(req, res) {
 
     await new Promise((r) => setTimeout(r, 2000));
 
-    // STEP 2: Send offer — image with caption (never truncated) or plain text
+    // STEP 2: Send images WITHOUT caption (caption causes truncation)
     if (images && images.length > 0) {
-      // First image carries the full offer text as caption
-      await fetch(baseUrl, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: phone,
-          type: "image",
-          image: {
-            link: images[0],
-            caption: fullOfferText,
-          },
-        }),
-      });
+      for (let i = 0; i < images.length; i++) {
+        if (i > 0) await new Promise((r) => setTimeout(r, 1500));
 
-      // Remaining images form a slider
-      for (let i = 1; i < images.length; i++) {
-        await new Promise((r) => setTimeout(r, 1500));
         await fetch(baseUrl, {
           method: "POST",
           headers,
@@ -79,12 +64,31 @@ export default async function handler(req, res) {
             messaging_product: "whatsapp",
             to: phone,
             type: "image",
-            image: { link: images[i] },
+            image: {
+              link: images[i],
+              // ✅ No caption here — avoids "read more" truncation
+            },
           }),
         });
       }
+
+      // STEP 3: Send full offer text as a separate text message after images
+      await new Promise((r) => setTimeout(r, 1500));
+      await fetch(baseUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: phone,
+          type: "text",
+          text: {
+            body: fullOfferText,
+            preview_url: false,
+          },
+        }),
+      });
     } else {
-      // No images — plain text fallback
+      // No images — plain text only
       await fetch(baseUrl, {
         method: "POST",
         headers,
