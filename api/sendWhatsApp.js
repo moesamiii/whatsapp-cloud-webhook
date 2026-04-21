@@ -16,7 +16,7 @@ export default async function handler(req, res) {
 
   try {
     // Step 1: Send template to open conversation window
-    await fetch(baseUrl, {
+    const templateRes = await fetch(baseUrl, {
       method: "POST",
       headers,
       body: JSON.stringify({
@@ -32,12 +32,6 @@ export default async function handler(req, res) {
               parameters: [
                 {
                   type: "text",
-                  parameters: [
-                    {
-                      type: "text",
-                      text: service || "عميلنا",
-                    },
-                  ],
                   text: service || "عميلنا",
                 },
               ],
@@ -46,6 +40,14 @@ export default async function handler(req, res) {
         },
       }),
     });
+
+    const templateData = await templateRes.json();
+    console.log("TEMPLATE RESPONSE:", templateData);
+
+    // ❗ هذا أهم سطر
+    if (!templateRes.ok) {
+      throw new Error(templateData.error?.message || "Template failed");
+    }
 
     await new Promise((r) => setTimeout(r, 2000));
 
