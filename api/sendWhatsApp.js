@@ -13,10 +13,9 @@ export default async function handler(req, res) {
   };
 
   const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
-  const fullOfferText = `📢 ${title}\n\n${desc}\n\n⏰ صالح حتى: ${date}`;
 
   try {
-    // STEP 1: Send template to open conversation window
+    // STEP 1: Send offer template (with title+desc + date)
     const templateRes = await fetch(baseUrl, {
       method: "POST",
       headers,
@@ -25,16 +24,19 @@ export default async function handler(req, res) {
         to: phone,
         type: "template",
         template: {
-          name: "offer_open",
-          language: { code: "ar_AE" },
+          name: "clinic_offer", // <-- your NEW template name
+          language: { code: "ar" }, // or ar_AE (must match dashboard)
           components: [
             {
               type: "body",
               parameters: [
                 {
                   type: "text",
-                  text: name || "عميلنا",
-                  parameter_name: "name",
+                  text: `${title} - ${desc}`, // {{1}}
+                },
+                {
+                  type: "text",
+                  text: date, // {{2}}
                 },
               ],
             },
@@ -57,7 +59,7 @@ export default async function handler(req, res) {
       for (let i = 0; i < images.length; i++) {
         if (i > 0) await new Promise((r) => setTimeout(r, 1500));
 
-        await fetch(baseUrl, {
+        const imgRes = await fetch(baseUrl, {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -66,39 +68,19 @@ export default async function handler(req, res) {
             type: "image",
             image: {
               link: images[i],
-              // ✅ No caption here — avoids "read more" truncation
             },
           }),
         });
-      }
 
-      // STEP 3: Send full offer text as a separate text message after images
-      await new Promise((r) => setTimeout(r, 1500));
-      await fetch(baseUrl, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: phone,
-          type: "text",
-          text: {
-            body: fullOfferText,
-            preview_url: false,
-          },
-        }),
-      });
+        const imgData = await imgRes.json();
+        console.log("IMAGE RESPONSE:", imgData);
+
+        if (!imgRes.ok) {
+          console.error("Image failed:", imgData);
+        }
+      }
     } else {
-      // No images — plain text only
-      await fetch(baseUrl, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: phone,
-          type: "text",
-          text: { body: fullOfferText, preview_url: false },
-        }),
-      });
+      // No images — do nothing (template already sent)
     }
 
     res.status(200).json({ success: true });
