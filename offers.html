@@ -1287,33 +1287,38 @@
         }
       }
 
-      async function sendWhatsAppMessage(
-        phone,
-        name,
-        title,
-        desc,
-        date,
-        imageUrls,
-      ) {
-        const images = Array.isArray(imageUrls)
-          ? imageUrls
-          : imageUrls
-            ? [imageUrls]
-            : [];
-
-        const PHONE_NUMBER_ID = "1039766262557024";
-        const ACCESS_TOKEN =
-          "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
-        const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
-        const headers = {
-          Authorization: `Bearer ${ACCESS_TOKEN}`,
-          "Content-Type": "application/json",
-        };
-        const fullOfferText = `📢 ${title}\n\n${desc}\n\n⏰ صالح حتى: ${date}`;
-
+      async function sendWhatsAppMessage(phone, title, desc, date, imageUrl) {
         try {
-          // STEP 1: Send template to open conversation window
-          const templateRes = await fetch(baseUrl, {
+          const PHONE_NUMBER_ID = "1039766262557024";
+          const ACCESS_TOKEN =
+            "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
+
+          const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
+
+          const headers = {
+            Authorization: `Bearer ${ACCESS_TOKEN}`,
+            "Content-Type": "application/json",
+          };
+
+          const components = [];
+
+          if (imageUrl) {
+            components.push({
+              type: "header",
+              parameters: [{ type: "image", image: { link: imageUrl } }],
+            });
+          }
+
+          components.push({
+            type: "body",
+            parameters: [
+              { type: "text", text: sanitizeTemplateParam(title) },
+              { type: "text", text: sanitizeTemplateParam(desc) },
+              { type: "text", text: sanitizeTemplateParam(date) },
+            ],
+          });
+
+          const response = await fetch(baseUrl, {
             method: "POST",
             headers,
             body: JSON.stringify({
@@ -1321,85 +1326,45 @@
               to: phone,
               type: "template",
               template: {
-                name: "offer_open",
-                language: { code: "ar_AE" },
-                components: [
-                  {
-                    type: "body",
-                    parameters: [
-                      {
-                        type: "text",
-                        text: sanitizeTemplateParam(name || "عميلنا"),
-                        parameter_name: "name",
-                      },
-                    ],
-                  },
-                ],
+                name: "clinic_offer",
+                language: { code: "ar" },
+                components,
               },
             }),
           });
 
-          const templateData = await templateRes.json();
+          const result = await response.json();
+
+          // 🔍 ALWAYS log full response
           addDebugLog(
-            `📩 Template Response for ${phone}: ${JSON.stringify(templateData)}`,
+            `📩 WhatsApp Response for ${phone}: ${JSON.stringify(result)}`,
           );
 
-          if (!templateRes.ok) {
-            addDebugLog(`❌ Template failed for ${phone}`, "error");
+          if (!response.ok) {
+            addDebugLog(`❌ API Error for ${phone}`, "error");
             return false;
           }
 
-          await new Promise((r) => setTimeout(r, 2000));
-
-          // STEP 2: Send offer content
-          if (images.length > 0) {
-            // First image with full offer text as caption (never truncated)
-            await fetch(baseUrl, {
-              method: "POST",
-              headers,
-              body: JSON.stringify({
-                messaging_product: "whatsapp",
-                to: phone,
-                type: "image",
-                image: { link: images[0], caption: fullOfferText },
-              }),
-            });
-
-            // Remaining images as slider
-            for (let i = 1; i < images.length; i++) {
-              await new Promise((r) => setTimeout(r, 1500));
-              await fetch(baseUrl, {
-                method: "POST",
-                headers,
-                body: JSON.stringify({
-                  messaging_product: "whatsapp",
-                  to: phone,
-                  type: "image",
-                  image: { link: images[i] },
-                }),
-              });
-            }
+          // ✅ REAL success check (message ID must exist)
+          if (result.messages && result.messages[0] && result.messages[0].id) {
+            addDebugLog(
+              `✅ Message sent to ${phone} | ID: ${result.messages[0].id}`,
+              "success",
+            );
+            return true;
           } else {
-            // No images — plain text
-            await fetch(baseUrl, {
-              method: "POST",
-              headers,
-              body: JSON.stringify({
-                messaging_product: "whatsapp",
-                to: phone,
-                type: "text",
-                text: { body: fullOfferText, preview_url: false },
-              }),
-            });
+            addDebugLog(
+              `⚠️ Message not confirmed (no ID) for ${phone}`,
+              "warning",
+            );
+            return false;
           }
-
-          addDebugLog(`✅ Sent to ${phone}`, "success");
-          return true;
         } catch (err) {
-          addDebugLog(`❌ Exception for ${phone}: ${err.message}`, "error");
+          addDebugLog(`❌ Exception: ${err.message}`, "error");
           return false;
         }
       }
+
       function sanitizeTemplateParam(text) {
         return String(text)
           .replace(/[\n\r\t]/g, " ")
@@ -1485,16 +1450,37 @@
               `إرسال إلى ${recipient.name} (${i + 1}/${totalRecipients})...`,
             );
 
-            const success = await sendWhatsAppMessage(
-              recipient.phone,
-              recipient.name,
-              title,
-              desc,
-              date,
-              uploadedImageUrls,
-            );
-            if (success) totalSuccess++;
-            else totalFail++;
+            if (uploadedImageUrls.length === 0) {
+              const success = await sendWhatsAppMessage(
+                recipient.phone,
+                title,
+                desc,
+                date,
+                null,
+              );
+              if (success) totalSuccess++;
+              else totalFail++;
+            } else {
+              for (let j = 0; j < uploadedImageUrls.length; j++) {
+                const success = await sendWhatsAppMessage(
+                  recipient.phone,
+                  title,
+                  desc,
+                  date,
+                  uploadedImageUrls[j],
+                );
+                if (success) totalSuccess++;
+                else totalFail++;
+
+                // Wait between messages to avoid rate limiting
+                if (j < uploadedImageUrls.length - 1) {
+                  const imageDelay = 2000 + Math.random() * 1000; // 2–3 seconds
+                  await new Promise((resolve) =>
+                    setTimeout(resolve, imageDelay),
+                  );
+                }
+              }
+            }
 
             // Wait between recipients
             // Smart delay between recipients
