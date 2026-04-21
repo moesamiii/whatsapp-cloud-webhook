@@ -1319,13 +1319,6 @@
             },
           ];
 
-          if (imageUrl) {
-            components.unshift({
-              type: "header",
-              parameters: [{ type: "image", image: { link: imageUrl } }],
-            });
-          }
-
           const response = await fetch(baseUrl, {
             method: "POST",
             headers,
