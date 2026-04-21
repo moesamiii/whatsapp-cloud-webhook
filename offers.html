@@ -1293,92 +1293,38 @@
         title,
         desc,
         date,
-        imageUrl,
+        imageUrls,
       ) {
+        const images = Array.isArray(imageUrls)
+          ? imageUrls
+          : imageUrls
+            ? [imageUrls]
+            : [];
+
         try {
-          const PHONE_NUMBER_ID = "1039766262557024";
-          const ACCESS_TOKEN =
-            "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
-
-          const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
-
-          const headers = {
-            Authorization: `Bearer ${ACCESS_TOKEN}`,
-            "Content-Type": "application/json",
-          };
-          const components = [
-            {
-              type: "body",
-              parameters: [
-                {
-                  type: "text",
-                  text: sanitizeTemplateParam(name || "عميلنا"),
-                  parameter_name: "name",
-                },
-              ],
-            },
-          ];
-
-          const response = await fetch(baseUrl, {
+          const response = await fetch("/api/sendWhatsApp", {
             method: "POST",
-            headers,
-            body: JSON.stringify({
-              messaging_product: "whatsapp",
-              to: phone,
-              type: "template",
-              template: {
-                name: "offer_open",
-
-                language: { code: "ar_AE" },
-                components,
-              },
-            }),
-          });
-
-          // wait 1.5 sec before sending text
-          await new Promise((r) => setTimeout(r, 1500));
-          // Step 2: send text message (offer details)
-          await fetch(baseUrl, {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              messaging_product: "whatsapp",
-              to: phone,
-              type: "text",
-              text: {
-                body: `📢 ${title}\n\n${desc}\n\n⏰ صالح حتى: ${date}`,
-              },
-            }),
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone, name, title, desc, date, images }),
           });
 
           const result = await response.json();
-
-          // 🔍 ALWAYS log full response
           addDebugLog(
-            `📩 WhatsApp Response for ${phone}: ${JSON.stringify(result)}`,
+            `📩 API Response for ${phone}: ${JSON.stringify(result)}`,
           );
 
-          if (!response.ok) {
-            addDebugLog(`❌ API Error for ${phone}`, "error");
+          if (!response.ok || !result.success) {
+            addDebugLog(
+              `❌ Failed for ${phone}: ${result.error || "unknown"}`,
+              "error",
+            );
             return false;
           }
 
-          // ✅ REAL success check (message ID must exist)
-          if (result.messages && result.messages[0] && result.messages[0].id) {
-            addDebugLog(
-              `✅ Message sent to ${phone} | ID: ${result.messages[0].id}`,
-              "success",
-            );
-            return true;
-          } else {
-            addDebugLog(
-              `⚠️ Message not confirmed (no ID) for ${phone}`,
-              "warning",
-            );
-            return false;
-          }
+          addDebugLog(`✅ Sent to ${phone}`, "success");
+          return true;
         } catch (err) {
-          addDebugLog(`❌ Exception: ${err.message}`, "error");
+          addDebugLog(`❌ Exception for ${phone}: ${err.message}`, "error");
           return false;
         }
       }
@@ -1468,39 +1414,16 @@
               `إرسال إلى ${recipient.name} (${i + 1}/${totalRecipients})...`,
             );
 
-            if (uploadedImageUrls.length === 0) {
-              const success = await sendWhatsAppMessage(
-                recipient.phone,
-                recipient.name,
-                title,
-                desc,
-                date,
-                null,
-              );
-              if (success) totalSuccess++;
-              else totalFail++;
-            } else {
-              for (let j = 0; j < uploadedImageUrls.length; j++) {
-                const success = await sendWhatsAppMessage(
-                  recipient.phone,
-                  recipient.name,
-                  title,
-                  desc,
-                  date,
-                  uploadedImageUrls[j],
-                );
-                if (success) totalSuccess++;
-                else totalFail++;
-
-                // Wait between messages to avoid rate limiting
-                if (j < uploadedImageUrls.length - 1) {
-                  const imageDelay = 2000 + Math.random() * 1000; // 2–3 seconds
-                  await new Promise((resolve) =>
-                    setTimeout(resolve, imageDelay),
-                  );
-                }
-              }
-            }
+            const success = await sendWhatsAppMessage(
+              recipient.phone,
+              recipient.name,
+              title,
+              desc,
+              date,
+              uploadedImageUrls,
+            );
+            if (success) totalSuccess++;
+            else totalFail++;
 
             // Wait between recipients
             // Smart delay between recipients
