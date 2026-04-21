@@ -1302,11 +1302,14 @@
             : [];
 
         try {
-          const response = await fetch("/api/sendWhatsApp", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ phone, name, title, desc, date, images }),
-          });
+          const response = await fetch(
+            "https://whatsapp-cloud-webhook-woad.vercel.app/api/sendWhatsApp",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ phone, name, title, desc, date, images }),
+            },
+          );
 
           const result = await response.json();
           addDebugLog(
