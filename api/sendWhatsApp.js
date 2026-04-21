@@ -9,7 +9,7 @@ async function sendWhatsAppMessage(phone, mainText, date, imageUrl) {
       "Content-Type": "application/json",
     };
 
-    // STEP 1: Send template (image optional in header, short placeholder in body {{1}})
+    // STEP 1: Send template with FLAT (no newlines) params
     const components = [];
 
     if (imageUrl) {
@@ -22,8 +22,8 @@ async function sendWhatsAppMessage(phone, mainText, date, imageUrl) {
     components.push({
       type: "body",
       parameters: [
-        { type: "text", text: "." }, // {{1}} — placeholder only, real text comes next
-        { type: "text", text: sanitizeTemplateParam(date) }, // {{2}}
+        { type: "text", text: "." }, // {{1}} — flat placeholder only
+        { type: "text", text: flattenText(date) }, // {{2}} — flat date
       ],
     });
 
@@ -52,10 +52,10 @@ async function sendWhatsAppMessage(phone, mainText, date, imageUrl) {
       return false;
     }
 
-    // Wait 2 seconds before sending the real formatted text
+    // Wait 2 seconds before sending real text
     await new Promise((r) => setTimeout(r, 2000));
 
-    // STEP 2: Send full formatted offer as plain text message (supports \n freely)
+    // STEP 2: Send full offer as a free-form text message (newlines allowed here)
     const fullText = `${mainText}\n\n⏰ صالح حتى: ${date}\n\nاحجزي الآن!`;
 
     const textRes = await fetch(baseUrl, {
@@ -83,4 +83,12 @@ async function sendWhatsAppMessage(phone, mainText, date, imageUrl) {
     addDebugLog(`❌ Exception: ${err.message}`, "error");
     return false;
   }
+}
+
+// Strips ALL newlines, tabs, and collapses spaces — safe for template params
+function flattenText(text) {
+  return String(text)
+    .replace(/[\r\n\t]/g, " ") // remove all newlines and tabs
+    .replace(/ {2,}/g, " ") // collapse multiple spaces into one
+    .trim();
 }
