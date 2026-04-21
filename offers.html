@@ -1408,11 +1408,8 @@
           // Upload images first if any
           let uploadedImageUrls = [];
 
-          const mainText = text
-            .split("\n")
-            .map((line) => line.trim())
-            .filter((line) => line !== "")
-            .join(" • ");
+          // AFTER (preserves line breaks):
+          const mainText = text.trim();
 
           if (selectedFiles.length > 0) {
             addDebugLog(`بدء رفع ${selectedFiles.length} صورة...`);
