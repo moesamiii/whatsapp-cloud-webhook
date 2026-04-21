@@ -32,7 +32,12 @@ export default async function handler(req, res) {
               parameters: [
                 {
                   type: "text",
-                  parameter_name: "name",
+                  parameters: [
+                    {
+                      type: "text",
+                      text: service || "عميلنا",
+                    },
+                  ],
                   text: service || "عميلنا",
                 },
               ],
