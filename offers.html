@@ -1301,27 +1301,96 @@
             ? [imageUrls]
             : [];
 
+        const PHONE_NUMBER_ID = "1039766262557024";
+        const ACCESS_TOKEN =
+          "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
+        const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
+        const headers = {
+          Authorization: `Bearer ${ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        };
+        const fullOfferText = `📢 ${title}\n\n${desc}\n\n⏰ صالح حتى: ${date}`;
+
         try {
-          const response = await fetch(
-            "https://whatsapp-cloud-webhook-woad.vercel.app/api/sendWhatsApp",
-            {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ phone, name, title, desc, date, images }),
-            },
-          );
+          // STEP 1: Send template to open conversation window
+          const templateRes = await fetch(baseUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: phone,
+              type: "template",
+              template: {
+                name: "offer_open",
+                language: { code: "ar_AE" },
+                components: [
+                  {
+                    type: "body",
+                    parameters: [
+                      {
+                        type: "text",
+                        text: sanitizeTemplateParam(name || "عميلنا"),
+                        parameter_name: "name",
+                      },
+                    ],
+                  },
+                ],
+              },
+            }),
+          });
 
-          const result = await response.json();
+          const templateData = await templateRes.json();
           addDebugLog(
-            `📩 API Response for ${phone}: ${JSON.stringify(result)}`,
+            `📩 Template Response for ${phone}: ${JSON.stringify(templateData)}`,
           );
 
-          if (!response.ok || !result.success) {
-            addDebugLog(
-              `❌ Failed for ${phone}: ${result.error || "unknown"}`,
-              "error",
-            );
+          if (!templateRes.ok) {
+            addDebugLog(`❌ Template failed for ${phone}`, "error");
             return false;
+          }
+
+          await new Promise((r) => setTimeout(r, 2000));
+
+          // STEP 2: Send offer content
+          if (images.length > 0) {
+            // First image with full offer text as caption (never truncated)
+            await fetch(baseUrl, {
+              method: "POST",
+              headers,
+              body: JSON.stringify({
+                messaging_product: "whatsapp",
+                to: phone,
+                type: "image",
+                image: { link: images[0], caption: fullOfferText },
+              }),
+            });
+
+            // Remaining images as slider
+            for (let i = 1; i < images.length; i++) {
+              await new Promise((r) => setTimeout(r, 1500));
+              await fetch(baseUrl, {
+                method: "POST",
+                headers,
+                body: JSON.stringify({
+                  messaging_product: "whatsapp",
+                  to: phone,
+                  type: "image",
+                  image: { link: images[i] },
+                }),
+              });
+            }
+          } else {
+            // No images — plain text
+            await fetch(baseUrl, {
+              method: "POST",
+              headers,
+              body: JSON.stringify({
+                messaging_product: "whatsapp",
+                to: phone,
+                type: "text",
+                text: { body: fullOfferText, preview_url: false },
+              }),
+            });
           }
 
           addDebugLog(`✅ Sent to ${phone}`, "success");
@@ -1331,7 +1400,6 @@
           return false;
         }
       }
-
       function sanitizeTemplateParam(text) {
         return String(text)
           .replace(/[\n\r\t]/g, " ")
