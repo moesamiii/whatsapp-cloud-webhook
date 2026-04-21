@@ -23,13 +23,39 @@ export default async function handler(req, res) {
         messaging_product: "whatsapp",
         to: phone,
         type: "template",
-        template: { name: "hello_world", language: { code: "en_US" } },
+        template: {
+          name: "offer_open",
+          language: { code: "ar" },
+          components: [
+            {
+              type: "body",
+              parameters: [
+                {
+                  type: "text",
+                  text: service || "عميلنا",
+                },
+              ],
+            },
+          ],
+        },
       }),
     });
 
     await new Promise((r) => setTimeout(r, 2000));
 
     // Step 2: Send offer content
+    await fetch(baseUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: phone,
+        type: "text",
+        text: { body: appointment },
+      }),
+    });
+
+    // Step 3: Send image (if exists)
     if (image) {
       await fetch(baseUrl, {
         method: "POST",
@@ -38,22 +64,10 @@ export default async function handler(req, res) {
           messaging_product: "whatsapp",
           to: phone,
           type: "image",
-          image: { link: image, caption: appointment },
-        }),
-      });
-    } else {
-      await fetch(baseUrl, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: phone,
-          type: "text",
-          text: { body: appointment },
+          image: { link: image },
         }),
       });
     }
-
     res.status(200).json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

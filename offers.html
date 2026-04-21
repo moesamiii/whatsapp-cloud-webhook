@@ -1287,7 +1287,14 @@
         }
       }
 
-      async function sendWhatsAppMessage(phone, title, desc, date, imageUrl) {
+      async function sendWhatsAppMessage(
+        phone,
+        name,
+        title,
+        desc,
+        date,
+        imageUrl,
+      ) {
         try {
           const PHONE_NUMBER_ID = "1039766262557024";
           const ACCESS_TOKEN =
@@ -1311,11 +1318,7 @@
 
           components.push({
             type: "body",
-            parameters: [
-              { type: "text", text: sanitizeTemplateParam(title) },
-              { type: "text", text: sanitizeTemplateParam(desc) },
-              { type: "text", text: sanitizeTemplateParam(date) },
-            ],
+            parameters: [{ type: "text", text: name || "عميلنا" }],
           });
 
           const response = await fetch(baseUrl, {
@@ -1326,9 +1329,25 @@
               to: phone,
               type: "template",
               template: {
-                name: "clinic_offer",
+                name: "offer_open",
                 language: { code: "ar" },
                 components,
+              },
+            }),
+          });
+
+          // wait 1.5 sec before sending text
+          await new Promise((r) => setTimeout(r, 1500));
+          // Step 2: send text message (offer details)
+          await fetch(baseUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: phone,
+              type: "text",
+              text: {
+                body: `📢 ${title}\n\n${desc}\n\n⏰ صالح حتى: ${date}`,
               },
             }),
           });
@@ -1453,6 +1472,7 @@
             if (uploadedImageUrls.length === 0) {
               const success = await sendWhatsAppMessage(
                 recipient.phone,
+                recipient.name,
                 title,
                 desc,
                 date,
@@ -1464,6 +1484,7 @@
               for (let j = 0; j < uploadedImageUrls.length; j++) {
                 const success = await sendWhatsAppMessage(
                   recipient.phone,
+                  recipient.name,
                   title,
                   desc,
                   date,
