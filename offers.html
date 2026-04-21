@@ -1318,7 +1318,9 @@
 
           components.push({
             type: "body",
-            parameters: [{ type: "text", text: name || "عميلنا" }],
+            parameters: [
+              { type: "text", text: sanitizeTemplateParam(name || "عميلنا") },
+            ],
           });
 
           const response = await fetch(baseUrl, {
