@@ -1359,12 +1359,8 @@
       }
 
       function sanitizeTemplateParam(text) {
-        return String(text)
-          .replace(/[\n\r\t]/g, " ")
-          .replace(/ {4,}/g, "   ")
-          .trim();
+        return String(text).replace(/\t/g, " ").replace(/ {3,}/g, "  ").trim();
       }
-
       function getSmartDelay(index) {
         // Random delay between 4–8 seconds
         const baseDelay = 4000 + Math.random() * 4000;
@@ -1411,11 +1407,9 @@
 
           // Upload images first if any
           let uploadedImageUrls = [];
-          const cleanText = text.replace(/\n/g, " ");
-          const mainText =
-            cleanText.length > 300
-              ? cleanText.substring(0, 300) + "..."
-              : cleanText;
+
+          const cleanText = text;
+          const mainText = cleanText;
 
           if (selectedFiles.length > 0) {
             addDebugLog(`بدء رفع ${selectedFiles.length} صورة...`);
