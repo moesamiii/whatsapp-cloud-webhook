@@ -1289,6 +1289,7 @@
 
       async function sendWhatsAppMessage(phone, title, desc, date, imageUrl) {
         try {
+          const mainText = `${title} - ${desc}`;
           const PHONE_NUMBER_ID = "1039766262557024";
           const ACCESS_TOKEN =
             "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
@@ -1312,9 +1313,8 @@
           components.push({
             type: "body",
             parameters: [
-              { type: "text", text: sanitizeTemplateParam(title) },
-              { type: "text", text: sanitizeTemplateParam(desc) },
-              { type: "text", text: sanitizeTemplateParam(date) },
+              { type: "text", text: sanitizeTemplateParam(mainText) }, // {{1}}
+              { type: "text", text: sanitizeTemplateParam(date) }, // {{2}}
             ],
           });
 
