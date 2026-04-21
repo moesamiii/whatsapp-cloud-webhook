@@ -1280,38 +1280,40 @@
         }
       }
 
+      function flattenText(text) {
+        return String(text)
+          .replace(/[\r\n\t]/g, " ")
+          .replace(/ {2,}/g, " ")
+          .trim();
+      }
+
       async function sendWhatsAppMessage(phone, mainText, date, imageUrl) {
         try {
-          const finalText = mainText;
           const PHONE_NUMBER_ID = "1039766262557024";
           const ACCESS_TOKEN =
             "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
-
           const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
-
           const headers = {
             Authorization: `Bearer ${ACCESS_TOKEN}`,
             "Content-Type": "application/json",
           };
 
           const components = [];
-
           if (imageUrl) {
             components.push({
               type: "header",
               parameters: [{ type: "image", image: { link: imageUrl } }],
             });
           }
-
           components.push({
             type: "body",
             parameters: [
-              { type: "text", text: sanitizeTemplateParam(mainText) }, // {{1}}
-              { type: "text", text: sanitizeTemplateParam(date) }, // {{2}}
+              { type: "text", text: "." }, // {{1}} flat placeholder
+              { type: "text", text: flattenText(date) }, // {{2}} flat date
             ],
           });
 
-          const response = await fetch(baseUrl, {
+          const templateRes = await fetch(baseUrl, {
             method: "POST",
             headers,
             body: JSON.stringify({
@@ -1325,31 +1327,39 @@
               },
             }),
           });
-
-          const result = await response.json();
-
-          // 🔍 ALWAYS log full response
+          const templateResult = await templateRes.json();
           addDebugLog(
-            `📩 WhatsApp Response for ${phone}: ${JSON.stringify(result)}`,
+            `📩 Template Response for ${phone}: ${JSON.stringify(templateResult)}`,
           );
 
-          if (!response.ok) {
-            addDebugLog(`❌ API Error for ${phone}`, "error");
+          if (!templateResult.messages?.[0]?.id) {
+            addDebugLog(`❌ Template failed for ${phone}`, "error");
             return false;
           }
 
-          // ✅ REAL success check (message ID must exist)
-          if (result.messages && result.messages[0] && result.messages[0].id) {
-            addDebugLog(
-              `✅ Message sent to ${phone} | ID: ${result.messages[0].id}`,
-              "success",
-            );
+          // Send full text as free-form (newlines allowed here)
+          await new Promise((r) => setTimeout(r, 2000));
+          const fullText = `${mainText}\n\n⏰ صالح حتى: ${date}\n\nاحجزي الآن!`;
+          const textRes = await fetch(baseUrl, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              messaging_product: "whatsapp",
+              to: phone,
+              type: "text",
+              text: { body: fullText },
+            }),
+          });
+          const textResult = await textRes.json();
+          addDebugLog(
+            `📩 Text Response for ${phone}: ${JSON.stringify(textResult)}`,
+          );
+
+          if (textResult.messages?.[0]?.id) {
+            addDebugLog(`✅ Full message sent to ${phone}`, "success");
             return true;
           } else {
-            addDebugLog(
-              `⚠️ Message not confirmed (no ID) for ${phone}`,
-              "warning",
-            );
+            addDebugLog(`⚠️ Text message failed for ${phone}`, "warning");
             return false;
           }
         } catch (err) {
@@ -1358,9 +1368,6 @@
         }
       }
 
-      function sanitizeTemplateParam(text) {
-        return String(text).replace(/\t/g, " ").replace(/ {3,}/g, "  ").trim();
-      }
       function getSmartDelay(index) {
         // Random delay between 4–8 seconds
         const baseDelay = 4000 + Math.random() * 4000;
