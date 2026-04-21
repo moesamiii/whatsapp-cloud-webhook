@@ -1306,22 +1306,25 @@
             Authorization: `Bearer ${ACCESS_TOKEN}`,
             "Content-Type": "application/json",
           };
-
-          const components = [];
+          const components = [
+            {
+              type: "body",
+              parameters: [
+                {
+                  type: "text",
+                  text: sanitizeTemplateParam(name || "عميلنا"),
+                  parameter_name: "name",
+                },
+              ],
+            },
+          ];
 
           if (imageUrl) {
-            components.push({
+            components.unshift({
               type: "header",
               parameters: [{ type: "image", image: { link: imageUrl } }],
             });
           }
-
-          components.push({
-            type: "body",
-            parameters: [
-              { type: "text", text: sanitizeTemplateParam(name || "عميلنا") },
-            ],
-          });
 
           const response = await fetch(baseUrl, {
             method: "POST",
