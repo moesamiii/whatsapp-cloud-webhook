@@ -5,7 +5,9 @@ export default async function handler(req, res) {
   const { phone, name, title, desc, date, images } = req.body;
 
   const PHONE_NUMBER_ID = "1039766262557024";
-  const ACCESS_TOKEN = process.env.WHATSAPP_TOKEN;
+
+  const ACCESS_TOKEN =
+    "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
 
   const headers = {
     Authorization: `Bearer ${ACCESS_TOKEN}`,
