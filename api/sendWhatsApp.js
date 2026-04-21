@@ -25,13 +25,14 @@ export default async function handler(req, res) {
         type: "template",
         template: {
           name: "offer_open",
-          language: { code: "ar" },
+          language: { code: "ar_AE" },
           components: [
             {
               type: "body",
               parameters: [
                 {
                   type: "text",
+                  parameter_name: "name",
                   text: service || "عميلنا",
                 },
               ],
