@@ -622,18 +622,11 @@
 
         <section class="settings-container">
           <div class="setting-card">
-            <label>عنوان العرض</label>
-            <input
-              type="text"
-              id="offerTitle"
-              placeholder="مثال: خصم 20% على تنظيف الأسنان"
-            />
-
-            <label>وصف العرض</label>
+            <label>نص العرض</label>
             <textarea
-              id="offerDesc"
-              rows="3"
-              placeholder="اكتب تفاصيل العرض هنا..."
+              id="offerText"
+              rows="4"
+              placeholder="اكتب نص العرض كامل هنا..."
             ></textarea>
 
             <label
@@ -1287,9 +1280,9 @@
         }
       }
 
-      async function sendWhatsAppMessage(phone, title, desc, date, imageUrl) {
+      async function sendWhatsAppMessage(phone, mainText, date, imageUrl) {
         try {
-          const mainText = `${title} - ${desc}`;
+          const finalText = mainText;
           const PHONE_NUMBER_ID = "1039766262557024";
           const ACCESS_TOKEN =
             "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
@@ -1387,8 +1380,7 @@
       // 🚀 Main send offer function
       async function sendOffer() {
         const sendBtn = document.getElementById("sendBtn");
-        const title = document.getElementById("offerTitle").value.trim();
-        const desc = document.getElementById("offerDesc").value.trim();
+        const text = document.getElementById("offerText").value.trim();
         const date = document.getElementById("offerDate").value;
 
         // Clear previous debug logs
@@ -1396,7 +1388,7 @@
         document.getElementById("debugInfo").style.display = "block";
         document.getElementById("progressInfo").style.display = "none";
 
-        if (!title || !desc || !date) {
+        if (!text || !date) {
           alert("⚠️ يرجى تعبئة جميع الحقول قبل الإرسال.");
           addDebugLog("فشل: حقول مفقودة", "error");
           return;
@@ -1413,14 +1405,17 @@
         sendBtn.disabled = true;
         sendBtn.innerHTML = 'جاري الإرسال... <span class="spinner"></span>';
 
-        const messageText = `📢 ${title}\n\n${desc}\n\n⏰ صالح حتى: ${date}`;
-
         try {
           let totalSuccess = 0;
           let totalFail = 0;
 
           // Upload images first if any
           let uploadedImageUrls = [];
+          const cleanText = text.replace(/\n/g, " ");
+          const mainText =
+            cleanText.length > 300
+              ? cleanText.substring(0, 300) + "..."
+              : cleanText;
 
           if (selectedFiles.length > 0) {
             addDebugLog(`بدء رفع ${selectedFiles.length} صورة...`);
@@ -1453,19 +1448,18 @@
             if (uploadedImageUrls.length === 0) {
               const success = await sendWhatsAppMessage(
                 recipient.phone,
-                title,
-                desc,
+                mainText,
                 date,
                 null,
               );
+
               if (success) totalSuccess++;
               else totalFail++;
             } else {
               for (let j = 0; j < uploadedImageUrls.length; j++) {
                 const success = await sendWhatsAppMessage(
                   recipient.phone,
-                  title,
-                  desc,
+                  mainText,
                   date,
                   uploadedImageUrls[j],
                 );
@@ -1521,8 +1515,7 @@
       }
 
       function clearForm() {
-        document.getElementById("offerTitle").value = "";
-        document.getElementById("offerDesc").value = "";
+        document.getElementById("offerText").value = "";
         document.getElementById("offerDate").value = "";
         document.getElementById("offerImage").value = "";
         selectedFiles = [];
