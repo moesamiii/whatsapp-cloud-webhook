@@ -2,12 +2,10 @@ export default async function handler(req, res) {
   if (req.method !== "POST")
     return res.status(405).json({ error: "Method not allowed" });
 
-  const { phone, name, title, desc, date, images } = req.body;
+  const { phone, service, appointment, image } = req.body;
 
   const PHONE_NUMBER_ID = "1039766262557024";
-
-  const ACCESS_TOKEN =
-    "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
+  const ACCESS_TOKEN = process.env.WHATSAPP_TOKEN;
 
   const headers = {
     Authorization: `Bearer ${ACCESS_TOKEN}`,
@@ -15,10 +13,9 @@ export default async function handler(req, res) {
   };
 
   const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
-  const fullOfferText = `📢 ${title}\n\n${desc}\n\n⏰ صالح حتى: ${date}`;
 
   try {
-    // STEP 1: Send template to open conversation window
+    // Step 1: Send template to open conversation window
     const templateRes = await fetch(baseUrl, {
       method: "POST",
       headers,
@@ -35,8 +32,7 @@ export default async function handler(req, res) {
               parameters: [
                 {
                   type: "text",
-                  text: name || "عميلنا",
-                  parameter_name: "name",
+                  text: service || "عميلنا",
                 },
               ],
             },
@@ -48,15 +44,27 @@ export default async function handler(req, res) {
     const templateData = await templateRes.json();
     console.log("TEMPLATE RESPONSE:", templateData);
 
+    // ❗ هذا أهم سطر
     if (!templateRes.ok) {
       throw new Error(templateData.error?.message || "Template failed");
     }
 
     await new Promise((r) => setTimeout(r, 2000));
 
-    // STEP 2: Send offer — image with caption (never truncated) or plain text
-    if (images && images.length > 0) {
-      // First image carries the full offer text as caption
+    // Step 2: Send offer content
+    await fetch(baseUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: phone,
+        type: "text",
+        text: { body: appointment },
+      }),
+    });
+
+    // Step 3: Send image (if exists)
+    if (image) {
       await fetch(baseUrl, {
         method: "POST",
         headers,
@@ -64,44 +72,12 @@ export default async function handler(req, res) {
           messaging_product: "whatsapp",
           to: phone,
           type: "image",
-          image: {
-            link: images[0],
-            caption: fullOfferText,
-          },
-        }),
-      });
-
-      // Remaining images form a slider
-      for (let i = 1; i < images.length; i++) {
-        await new Promise((r) => setTimeout(r, 1500));
-        await fetch(baseUrl, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            messaging_product: "whatsapp",
-            to: phone,
-            type: "image",
-            image: { link: images[i] },
-          }),
-        });
-      }
-    } else {
-      // No images — plain text fallback
-      await fetch(baseUrl, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          to: phone,
-          type: "text",
-          text: { body: fullOfferText, preview_url: false },
+          image: { link: image },
         }),
       });
     }
-
     res.status(200).json({ success: true });
   } catch (err) {
-    console.error("sendWhatsApp error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 }
