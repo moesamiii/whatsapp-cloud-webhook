@@ -1384,14 +1384,12 @@
 
         return baseDelay;
       }
-      // 🚀 Main send offer function
       async function sendOffer() {
         const sendBtn = document.getElementById("sendBtn");
         const title = document.getElementById("offerTitle").value.trim();
         const desc = document.getElementById("offerDesc").value.trim();
         const date = document.getElementById("offerDate").value;
 
-        // Clear previous debug logs
         document.getElementById("debugContent").innerHTML = "";
         document.getElementById("debugInfo").style.display = "block";
         document.getElementById("progressInfo").style.display = "none";
@@ -1402,93 +1400,73 @@
           return;
         }
 
-        // Check if there are recipients
         if (recipientPhones.length === 0) {
           alert("⚠️ يرجى إضافة رقم هاتف واحد على الأقل للإرسال.");
           addDebugLog("فشل: لا توجد أرقام مستلمين", "error");
           return;
         }
 
-        // Disable button during send
         sendBtn.disabled = true;
         sendBtn.innerHTML = 'جاري الإرسال... <span class="spinner"></span>';
 
-        const messageText = `📢 ${title} - ${desc} - ⏰ صالح حتى: ${date}`;
+        const PHONE_NUMBER_ID = "1039766262557024";
+        const ACCESS_TOKEN =
+          "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
 
         try {
           let totalSuccess = 0;
           let totalFail = 0;
 
-          // Upload images first if any
-          let uploadedImageUrls = [];
-
-          if (selectedFiles.length > 0) {
-            addDebugLog(`بدء رفع ${selectedFiles.length} صورة...`);
-
-            for (let i = 0; i < selectedFiles.length; i++) {
-              updateProgress(
-                `جاري رفع الصورة ${i + 1} من ${selectedFiles.length}...`,
-              );
-              const imageUrl = await uploadImage(selectedFiles[i]);
-              if (imageUrl) {
-                uploadedImageUrls.push(imageUrl);
-              }
-            }
-
-            addDebugLog(
-              `تم رفع ${uploadedImageUrls.length} صورة بنجاح`,
-              "success",
-            );
-          }
-
-          // Send to each recipient
           const totalRecipients = recipientPhones.length;
 
           for (let i = 0; i < recipientPhones.length; i++) {
             const recipient = recipientPhones[i];
+
             updateProgress(
               `إرسال إلى ${recipient.name} (${i + 1}/${totalRecipients})...`,
             );
 
-            if (uploadedImageUrls.length === 0) {
-              const success = await sendWhatsAppMessage(
-                recipient.phone,
-                title,
-                desc,
-                date,
-                null,
-              );
-              if (success) totalSuccess++;
-              else totalFail++;
-            } else {
-              for (let j = 0; j < uploadedImageUrls.length; j++) {
-                const success = await sendWhatsAppMessage(
-                  recipient.phone,
-                  title,
-                  desc,
-                  date,
-                  uploadedImageUrls[j],
-                );
-                if (success) totalSuccess++;
-                else totalFail++;
+            // ✅ 1. إرسال التمبلت (مختصر بدون تفاصيل)
+            const success = await sendWhatsAppMessage(
+              recipient.phone,
+              `عرض خاص لك:\n📢 ${title}`,
+              "", // بدون تفاصيل هنا
+              `⏰ صالح حتى: ${date}`,
+              null,
+            );
 
-                // Wait between messages to avoid rate limiting
-                if (j < uploadedImageUrls.length - 1) {
-                  const imageDelay = 2000 + Math.random() * 1000; // 2–3 seconds
-                  await new Promise((resolve) =>
-                    setTimeout(resolve, imageDelay),
-                  );
-                }
-              }
-            }
+            // ✅ 2. رسالة التفاصيل (مرتبة بدون Read More)
+            await new Promise((r) => setTimeout(r, 1500));
 
-            // Wait between recipients
-            // Smart delay between recipients
+            await fetch(
+              `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`,
+              {
+                method: "POST",
+                headers: {
+                  Authorization: `Bearer ${ACCESS_TOKEN}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  messaging_product: "whatsapp",
+                  to: recipient.phone,
+                  type: "text",
+                  text: {
+                    body: `📋 التفاصيل:\n\n${desc}\n\n━━━━━━━━━━━━━━\n\n⏰ صالح حتى: ${date}\n\nاحجزي الآن! 💖`,
+                  },
+                }),
+              },
+            );
+
+            if (success) totalSuccess++;
+            else totalFail++;
+
             if (i < recipientPhones.length - 1) {
               const delay = getSmartDelay(i);
 
               updateProgress(
-                `⏳ انتظار ${(delay / 1000).toFixed(1)} ثانية قبل الإرسال التالي...`,
+                `⏳ انتظار ${(delay / 1000).toFixed(
+                  1,
+                )} ثانية قبل الإرسال التالي...`,
               );
 
               await new Promise((resolve) => setTimeout(resolve, delay));
@@ -1513,13 +1491,11 @@
           addDebugLog(`خطأ في الإرسال: ${err.message}`, "error");
           alert("❌ خطأ أثناء الإرسال: " + err.message);
         } finally {
-          // Re-enable button
           sendBtn.disabled = false;
           sendBtn.innerHTML = "إرسال العرض الآن";
           document.getElementById("progressInfo").style.display = "none";
         }
       }
-
       function clearForm() {
         document.getElementById("offerTitle").value = "";
         document.getElementById("offerDesc").value = "";
