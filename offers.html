@@ -1413,7 +1413,7 @@
         sendBtn.disabled = true;
         sendBtn.innerHTML = 'جاري الإرسال... <span class="spinner"></span>';
 
-        const messageText = `📢 ${title} - ${desc} - ⏰ صالح حتى: ${date}`;
+        const messageText = `📢 ${title}\n\n${desc}\n\n⏰ صالح حتى: ${date}`;
 
         try {
           let totalSuccess = 0;
