@@ -1,21 +1,32 @@
-export default async function handler(req, res) {
-  if (req.method !== "POST")
-    return res.status(405).json({ error: "Method not allowed" });
-
-  const { phone, name, title, desc, date, images } = req.body;
-
-  const PHONE_NUMBER_ID = "1039766262557024";
-  const ACCESS_TOKEN = process.env.WHATSAPP_TOKEN;
-
-  const headers = {
-    Authorization: `Bearer ${ACCESS_TOKEN}`,
-    "Content-Type": "application/json",
-  };
-
-  const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
-
+async function sendWhatsAppMessage(phone, mainText, date, imageUrl) {
   try {
-    // STEP 1: Send offer template (with title+desc + date)
+    const PHONE_NUMBER_ID = "1039766262557024";
+    const ACCESS_TOKEN =
+      "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
+    const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
+    const headers = {
+      Authorization: `Bearer ${ACCESS_TOKEN}`,
+      "Content-Type": "application/json",
+    };
+
+    // STEP 1: Send template (image optional in header, short placeholder in body {{1}})
+    const components = [];
+
+    if (imageUrl) {
+      components.push({
+        type: "header",
+        parameters: [{ type: "image", image: { link: imageUrl } }],
+      });
+    }
+
+    components.push({
+      type: "body",
+      parameters: [
+        { type: "text", text: "." }, // {{1}} — placeholder only, real text comes next
+        { type: "text", text: sanitizeTemplateParam(date) }, // {{2}}
+      ],
+    });
+
     const templateRes = await fetch(baseUrl, {
       method: "POST",
       headers,
@@ -24,68 +35,52 @@ export default async function handler(req, res) {
         to: phone,
         type: "template",
         template: {
-          name: "clinic_offer", // <-- your NEW template name
-          language: { code: "ar" }, // or ar_AE (must match dashboard)
-          components: [
-            {
-              type: "body",
-              parameters: [
-                {
-                  type: "text",
-                  text: `${title} - ${desc}`, // {{1}}
-                },
-                {
-                  type: "text",
-                  text: date, // {{2}}
-                },
-              ],
-            },
-          ],
+          name: "clinic_offer",
+          language: { code: "ar" },
+          components,
         },
       }),
     });
 
-    const templateData = await templateRes.json();
-    console.log("TEMPLATE RESPONSE:", templateData);
+    const templateResult = await templateRes.json();
+    addDebugLog(
+      `📩 Template Response for ${phone}: ${JSON.stringify(templateResult)}`,
+    );
 
-    if (!templateRes.ok) {
-      throw new Error(templateData.error?.message || "Template failed");
+    if (!templateResult.messages?.[0]?.id) {
+      addDebugLog(`❌ Template failed for ${phone}`, "error");
+      return false;
     }
 
+    // Wait 2 seconds before sending the real formatted text
     await new Promise((r) => setTimeout(r, 2000));
 
-    // STEP 2: Send images WITHOUT caption (caption causes truncation)
-    if (images && images.length > 0) {
-      for (let i = 0; i < images.length; i++) {
-        if (i > 0) await new Promise((r) => setTimeout(r, 1500));
+    // STEP 2: Send full formatted offer as plain text message (supports \n freely)
+    const fullText = `${mainText}\n\n⏰ صالح حتى: ${date}\n\nاحجزي الآن!`;
 
-        const imgRes = await fetch(baseUrl, {
-          method: "POST",
-          headers,
-          body: JSON.stringify({
-            messaging_product: "whatsapp",
-            to: phone,
-            type: "image",
-            image: {
-              link: images[i],
-            },
-          }),
-        });
+    const textRes = await fetch(baseUrl, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: phone,
+        type: "text",
+        text: { body: fullText },
+      }),
+    });
 
-        const imgData = await imgRes.json();
-        console.log("IMAGE RESPONSE:", imgData);
+    const textResult = await textRes.json();
+    addDebugLog(`📩 Text Response for ${phone}: ${JSON.stringify(textResult)}`);
 
-        if (!imgRes.ok) {
-          console.error("Image failed:", imgData);
-        }
-      }
+    if (textResult.messages?.[0]?.id) {
+      addDebugLog(`✅ Full message sent to ${phone}`, "success");
+      return true;
     } else {
-      // No images — do nothing (template already sent)
+      addDebugLog(`⚠️ Text message failed for ${phone}`, "warning");
+      return false;
     }
-
-    res.status(200).json({ success: true });
   } catch (err) {
-    console.error("sendWhatsApp error:", err);
-    res.status(500).json({ success: false, error: err.message });
+    addDebugLog(`❌ Exception: ${err.message}`, "error");
+    return false;
   }
 }
