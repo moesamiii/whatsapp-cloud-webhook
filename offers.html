@@ -1513,11 +1513,13 @@
                   );
                 }
               }
+              await new Promise((r) => setTimeout(r, 3000));
               const success = await sendTextOnly(
                 recipient.phone,
                 mainText,
                 date,
               );
+
               if (success) totalSuccess++;
               else totalFail++;
             }
