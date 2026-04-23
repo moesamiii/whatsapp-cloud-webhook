@@ -1361,6 +1361,61 @@
         }
       }
 
+      async function sendImageOnly(phone, imageUrl) {
+        const PHONE_NUMBER_ID = "1039766262557024";
+        const ACCESS_TOKEN =
+          "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
+        const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
+        const headers = {
+          Authorization: `Bearer ${ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        };
+
+        await fetch(baseUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            messaging_product: "whatsapp",
+            to: phone,
+            type: "template",
+            template: {
+              name: "clinic_offer_v2",
+              language: { code: "ar" },
+              components: [
+                {
+                  type: "header",
+                  parameters: [{ type: "image", image: { link: imageUrl } }],
+                },
+              ],
+            },
+          }),
+        });
+      }
+
+      async function sendTextOnly(phone, mainText, date) {
+        const PHONE_NUMBER_ID = "1039766262557024";
+        const ACCESS_TOKEN =
+          "EAAM2ahtGe0cBREUIeCrd3OGshwQrhythX8uNZBgZA48gMC06ZCg56GOHk2BzZB4xq0TBd1ZBwEo78sCvFZCiK7EG1CCBZCaFQ8mzxYw7Uvxnxecgxd0I33uT3NQ4y6Hx9jM7l2SygqbdRN81ohrIV5loWBcJVBfPwm5ZBT0VGqMQLSg9prJBt2jMGIp3PZAC9HRb3h1QvfsjrjeIZCBqfy";
+        const baseUrl = `https://graph.facebook.com/v25.0/${PHONE_NUMBER_ID}/messages`;
+        const headers = {
+          Authorization: `Bearer ${ACCESS_TOKEN}`,
+          "Content-Type": "application/json",
+        };
+
+        const fullText = `${mainText}\n\n⏰ صالح حتى: ${date}\n\nاحجزي الآن!`;
+        const res = await fetch(baseUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            messaging_product: "whatsapp",
+            to: phone,
+            type: "text",
+            text: { body: fullText },
+          }),
+        });
+        const result = await res.json();
+        return !!result.messages?.[0]?.id;
+      }
       function getSmartDelay(index) {
         // Random delay between 4–8 seconds
         const baseDelay = 4000 + Math.random() * 4000;
@@ -1447,28 +1502,24 @@
                 date,
                 null,
               );
-
               if (success) totalSuccess++;
               else totalFail++;
             } else {
               for (let j = 0; j < uploadedImageUrls.length; j++) {
-                const success = await sendWhatsAppMessage(
-                  recipient.phone,
-                  mainText,
-                  date,
-                  uploadedImageUrls[j],
-                );
-                if (success) totalSuccess++;
-                else totalFail++;
-
-                // Wait between messages to avoid rate limiting
+                await sendImageOnly(recipient.phone, uploadedImageUrls[j]);
                 if (j < uploadedImageUrls.length - 1) {
-                  const imageDelay = 2000 + Math.random() * 1000; // 2–3 seconds
-                  await new Promise((resolve) =>
-                    setTimeout(resolve, imageDelay),
+                  await new Promise((r) =>
+                    setTimeout(r, 2000 + Math.random() * 1000),
                   );
                 }
               }
+              const success = await sendTextOnly(
+                recipient.phone,
+                mainText,
+                date,
+              );
+              if (success) totalSuccess++;
+              else totalFail++;
             }
 
             // Wait between recipients
