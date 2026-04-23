@@ -1305,13 +1305,6 @@
               parameters: [{ type: "image", image: { link: imageUrl } }],
             });
           }
-          components.push({
-            type: "body",
-            parameters: [
-              { type: "text", text: "." }, // {{1}} flat placeholder
-              { type: "text", text: flattenText(date) }, // {{2}} flat date
-            ],
-          });
 
           const templateRes = await fetch(baseUrl, {
             method: "POST",
@@ -1321,7 +1314,7 @@
               to: phone,
               type: "template",
               template: {
-                name: "clinic_offer",
+                name: "clinic_offer_v2",
                 language: { code: "ar" },
                 components,
               },
