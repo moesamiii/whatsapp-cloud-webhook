@@ -19,14 +19,6 @@ async function sendWhatsAppMessage(phone, mainText, date, imageUrl) {
       });
     }
 
-    components.push({
-      type: "body",
-      parameters: [
-        { type: "text", text: "." }, // {{1}} — flat placeholder only
-        { type: "text", text: flattenText(date) }, // {{2}} — flat date
-      ],
-    });
-
     const templateRes = await fetch(baseUrl, {
       method: "POST",
       headers,
@@ -35,7 +27,7 @@ async function sendWhatsAppMessage(phone, mainText, date, imageUrl) {
         to: phone,
         type: "template",
         template: {
-          name: "clinic_offer",
+          name: "clinic_offer_v2",
           language: { code: "ar" },
           components,
         },
