@@ -602,6 +602,21 @@ function isResetRequest(text) {
   );
 }
 
+async function saveWhatsAppMessage({ from, to, body, direction, messageId }) {
+  try {
+    await supabase.from("whatsapp_messages").insert([
+      {
+        from_number: from,
+        to_number: to,
+        message_body: body,
+        direction: direction,
+        message_id: messageId,
+      },
+    ]);
+  } catch (err) {
+    console.error("❌ Save message error:", err.message);
+  }
+}
 // ==============================
 // 📩 WEBHOOK
 // ==============================
@@ -624,6 +639,14 @@ app.post("/webhook", async (req, res) => {
     // ✅ DUPLICATE MESSAGE DETECTION
     if (message.type === "text") {
       const text = message.text.body;
+
+      await saveWhatsAppMessage({
+        from: from,
+        to: PHONE_NUMBER_ID,
+        body: text,
+        direction: "in",
+        messageId: message.id,
+      });
 
       if (isDuplicateMessage(from, text)) {
         console.log(`🔁 Duplicate message from ${from}: "${text}" - ignoring`);
@@ -989,7 +1012,17 @@ https://www.instagram.com/beverlyhills.clinic?igsh=MXlyM21vcXlkdW5m&utm_source=q
           )
           .trim();
 
-        await sendTextMessage(from, cleanedReply || rawReply);
+        const finalReply = cleanedReply || rawReply;
+
+        await sendTextMessage(from, finalReply);
+
+        await saveWhatsAppMessage({
+          from: PHONE_NUMBER_ID,
+          to: from,
+          body: finalReply,
+          direction: "out",
+          messageId: Date.now().toString(),
+        });
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
       }
