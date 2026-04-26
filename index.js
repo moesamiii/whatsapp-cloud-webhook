@@ -185,19 +185,28 @@ setInterval(() => {
 
 async function insertBookingToSupabase(booking) {
   try {
-    await supabase.from("bookings").insert([
+    console.log("📦 Booking before insert:", booking);
+
+    const { data, error } = await supabase.from("bookings").insert([
       {
         name: booking.name,
         phone: booking.phone,
         service: booking.service,
         appointment: booking.appointment,
-        time: new Date().toISOString(), // ✅ ADD THIS LINE
+        time: new Date().toISOString(),
         status: "new",
       },
     ]);
+
+    if (error) {
+      console.error("❌ Insert error:", error);
+      return false;
+    }
+
+    console.log("✅ Insert success:", data);
     return true;
   } catch (err) {
-    console.error("❌ Supabase error:", err.message);
+    console.error("❌ Supabase exception:", err.message);
     return false;
   }
 }
@@ -603,18 +612,20 @@ function isResetRequest(text) {
 }
 
 async function saveWhatsAppMessage({ from, to, body, direction, messageId }) {
-  try {
-    await supabase.from("whatsapp_messages").insert([
-      {
-        from_number: from,
-        to_number: to,
-        message_body: body,
-        direction: direction,
-        message_id: messageId,
-      },
-    ]);
-  } catch (err) {
-    console.error("❌ Save message error:", err.message);
+  const { data, error } = await supabase.from("whatsapp_messages").insert([
+    {
+      from_number: from,
+      to_number: to,
+      message_body: body,
+      direction: direction,
+      message_id: messageId,
+    },
+  ]);
+
+  if (error) {
+    console.error("❌ SUPABASE INSERT ERROR:", error);
+  } else {
+    console.log("✅ Message saved:", data);
   }
 }
 // ==============================
@@ -622,7 +633,11 @@ async function saveWhatsAppMessage({ from, to, body, direction, messageId }) {
 // ==============================
 app.post("/webhook", async (req, res) => {
   const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-  if (!message) return res.sendStatus(200);
+
+  if (!message) {
+    console.log("❌ No message");
+    return res.sendStatus(200);
+  }
 
   const from = message.from;
   const messageId = message.id;
@@ -683,7 +698,24 @@ app.post("/webhook", async (req, res) => {
         const booking = tempBookings[from];
         booking.service = id.replace("service_", "");
 
-        await insertBookingToSupabase(booking);
+        if (!booking || !booking.name || !booking.phone) {
+          console.log("❌ Missing data:", booking);
+
+          await sendTextMessage(from, "⚠️ البيانات ناقصة، حاول الحجز من جديد");
+
+          delete tempBookings[from];
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
+
+        const success = await insertBookingToSupabase(booking);
+
+        if (!success) {
+          await sendTextMessage(from, "❌ حدث خطأ أثناء الحجز، حاول مرة أخرى");
+          delete tempBookings[from];
+          markMessageProcessed(from, messageId);
+          return res.sendStatus(200);
+        }
 
         await sendTextMessage(
           from,
