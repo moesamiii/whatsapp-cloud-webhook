@@ -185,9 +185,7 @@ setInterval(() => {
 
 async function insertBookingToSupabase(booking) {
   try {
-    console.log("📦 Booking before insert:", booking);
-
-    const { data, error } = await supabase.from("bookings").insert([
+    await supabase.from("bookings").insert([
       {
         name: booking.name,
         phone: booking.phone,
@@ -197,16 +195,9 @@ async function insertBookingToSupabase(booking) {
         status: "new",
       },
     ]);
-
-    if (error) {
-      console.error("❌ Insert error:", error);
-      return false;
-    }
-
-    console.log("✅ Insert success:", data);
     return true;
   } catch (err) {
-    console.error("❌ Supabase exception:", err.message);
+    console.error("❌ Supabase error:", err.message);
     return false;
   }
 }
@@ -253,6 +244,30 @@ async function cancelBooking(id) {
     console.error("❌ Cancel booking exception:", err.message);
     return false;
   }
+}
+
+// ==============================
+// 💬 SAVE MESSAGE TO SUPABASE
+// ==============================
+async function saveMessage(phone, body, direction) {
+  try {
+    await supabase.from("messages").insert([
+      {
+        from_phone: phone,
+        body: body,
+        direction: direction, // "incoming" = from user, "outgoing" = from bot
+        created_at: new Date().toISOString(),
+      },
+    ]);
+  } catch (err) {
+    console.error("❌ Save message error:", err.message);
+  }
+}
+
+// ✅ Wrapper: send text + save to DB
+async function sendAndSave(to, text) {
+  await sendTextMessage(to, text);
+  await saveMessage(to, text, "outgoing");
 }
 
 // ==============================
@@ -503,13 +518,13 @@ async function sendImageMessage(to, imageUrl, caption) {
 
 // ✅ Send doctor info
 async function sendDoctorInfo(to) {
-  await sendTextMessage(to, "👨‍⚕️ فريق الأطباء لدينا:");
+  await sendAndSave(to, "👨‍⚕️ فريق الأطباء لدينا:");
 
   for (let i = 0; i < DOCTOR_INFO.length; i++) {
     const doctor = DOCTOR_INFO[i];
     const caption = `${doctor.name}\n${doctor.specialization}`;
 
-    await sendTextMessage(to, caption);
+    await sendAndSave(to, caption);
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 }
@@ -611,33 +626,12 @@ function isResetRequest(text) {
   );
 }
 
-async function saveWhatsAppMessage({ from, to, body, direction, messageId }) {
-  const { data, error } = await supabase.from("whatsapp_messages").insert([
-    {
-      from_number: from,
-      to_number: to,
-      message_body: body,
-      direction: direction,
-      message_id: messageId,
-    },
-  ]);
-
-  if (error) {
-    console.error("❌ SUPABASE INSERT ERROR:", error);
-  } else {
-    console.log("✅ Message saved:", data);
-  }
-}
 // ==============================
 // 📩 WEBHOOK
 // ==============================
 app.post("/webhook", async (req, res) => {
   const message = req.body.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
-
-  if (!message) {
-    console.log("❌ No message");
-    return res.sendStatus(200);
-  }
+  if (!message) return res.sendStatus(200);
 
   const from = message.from;
   const messageId = message.id;
@@ -654,14 +648,6 @@ app.post("/webhook", async (req, res) => {
     // ✅ DUPLICATE MESSAGE DETECTION
     if (message.type === "text") {
       const text = message.text.body;
-
-      await saveWhatsAppMessage({
-        from: from,
-        to: PHONE_NUMBER_ID,
-        body: text,
-        direction: "in",
-        messageId: message.id,
-      });
 
       if (isDuplicateMessage(from, text)) {
         console.log(`🔁 Duplicate message from ${from}: "${text}" - ignoring`);
@@ -689,7 +675,7 @@ app.post("/webhook", async (req, res) => {
         tempBookings[from] = {
           appointment: id.replace("slot_", "").toUpperCase(),
         };
-        await sendTextMessage(from, "👍 أرسل اسمك:");
+        await sendAndSave(from, "👍 أرسل اسمك:");
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
       }
@@ -698,26 +684,9 @@ app.post("/webhook", async (req, res) => {
         const booking = tempBookings[from];
         booking.service = id.replace("service_", "");
 
-        if (!booking || !booking.name || !booking.phone) {
-          console.log("❌ Missing data:", booking);
+        await insertBookingToSupabase(booking);
 
-          await sendTextMessage(from, "⚠️ البيانات ناقصة، حاول الحجز من جديد");
-
-          delete tempBookings[from];
-          markMessageProcessed(from, messageId);
-          return res.sendStatus(200);
-        }
-
-        const success = await insertBookingToSupabase(booking);
-
-        if (!success) {
-          await sendTextMessage(from, "❌ حدث خطأ أثناء الحجز، حاول مرة أخرى");
-          delete tempBookings[from];
-          markMessageProcessed(from, messageId);
-          return res.sendStatus(200);
-        }
-
-        await sendTextMessage(
+        await sendAndSave(
           from,
           `✅ تم تأكيد الحجز:\n👤 ${booking.name}\n📱 ${booking.phone}\n💊 ${booking.service}`,
         );
@@ -733,6 +702,9 @@ app.post("/webhook", async (req, res) => {
       const text = message.text.body;
 
       console.log("📩 Message from:", from, "Text:", text);
+
+      // ✅ Save every incoming user message
+      await saveMessage(from, text, "incoming");
 
       // ✅ PRIORITY 0: RESET/START DETECTION (HIGHEST PRIORITY!)
       if (isResetRequest(text)) {
@@ -752,7 +724,7 @@ app.post("/webhook", async (req, res) => {
             ? `👋 مرحباً بك في ${clinicName}!\n\nكيف يمكنني مساعدتك اليوم؟`
             : `👋 Hello! Welcome to ${clinicName}!\n\nHow can I help you today?`;
 
-        await sendTextMessage(from, greeting);
+        await sendAndSave(from, greeting);
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
       }
@@ -768,7 +740,7 @@ app.post("/webhook", async (req, res) => {
           delete tempBookings[from];
         }
 
-        await sendTextMessage(from, "📌 أرسل رقم الجوال المستخدم في الحجز:");
+        await sendAndSave(from, "📌 أرسل رقم الجوال المستخدم في الحجز:");
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
       }
@@ -778,7 +750,7 @@ app.post("/webhook", async (req, res) => {
         const phone = text.replace(/\D/g, "");
 
         if (phone.length < 8) {
-          await sendTextMessage(from, "⚠️ رقم الجوال غير صحيح. حاول مجددًا:");
+          await sendAndSave(from, "⚠️ رقم الجوال غير صحيح. حاول مجددًا:");
           markMessageProcessed(from, messageId);
           return res.sendStatus(200);
         }
@@ -787,7 +759,7 @@ app.post("/webhook", async (req, res) => {
         const booking = await findBookingByPhone(phone);
 
         if (!booking) {
-          await sendTextMessage(from, "❌ لا يوجد حجز مرتبط بهذا الرقم.");
+          await sendAndSave(from, "❌ لا يوجد حجز مرتبط بهذا الرقم.");
           delete cancelSessions[from];
           markMessageProcessed(from, messageId);
           return res.sendStatus(200);
@@ -797,12 +769,12 @@ app.post("/webhook", async (req, res) => {
         const success = await cancelBooking(booking.id);
 
         if (success) {
-          await sendTextMessage(
+          await sendAndSave(
             from,
             `🟣 تم إلغاء الحجز:\n👤 ${booking.name}\n💊 ${booking.service}\n📅 ${booking.appointment}`,
           );
         } else {
-          await sendTextMessage(from, "⚠️ حدث خطأ أثناء الإلغاء.");
+          await sendAndSave(from, "⚠️ حدث خطأ أثناء الإلغاء.");
         }
 
         delete cancelSessions[from];
@@ -821,7 +793,7 @@ app.post("/webhook", async (req, res) => {
       if (!tempBookings[from] && isBookingRequest(text)) {
         console.log("📅 Starting booking for:", from);
         tempBookings[from] = { waitingForName: true };
-        await sendTextMessage(from, "👍 يسعدنا نحجز لك!\n\nأرسل اسمك الكريم:");
+        await sendAndSave(from, "👍 يسعدنا نحجز لك!\n\nأرسل اسمك الكريم:");
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
       }
@@ -829,7 +801,7 @@ app.post("/webhook", async (req, res) => {
       // ✅ PRIORITY 5: In booking flow - collect name
       if (tempBookings[from] && !tempBookings[from].name) {
         tempBookings[from].name = text;
-        await sendTextMessage(from, "📱 أرسل رقم الجوال:");
+        await sendAndSave(from, "📱 أرسل رقم الجوال:");
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
       }
@@ -850,14 +822,14 @@ app.post("/webhook", async (req, res) => {
       if (!tempBookings[from]) {
         // ✅ Phone number
         if (/(رقم|جوال|هاتف|اتصال|phone|number|contact)/i.test(text)) {
-          await sendTextMessage(from, "📞 رقم العيادة: 0590450555");
+          await sendAndSave(from, "📞 رقم العيادة: 0590450555");
           markMessageProcessed(from, messageId);
           return res.sendStatus(200);
         }
 
         // ✅ Location
         if (/(موقع|لوكيشن|وين|اين|العنوان|location|map|address)/i.test(text)) {
-          await sendTextMessage(
+          await sendAndSave(
             from,
             "📍 موقعنا:\nعيادات بيفرلي هيلز - حي السليمانية\nhttps://maps.app.goo.gl/hDHSJMRJ6hWShciB7?g_st=ic",
           );
@@ -869,10 +841,7 @@ app.post("/webhook", async (req, res) => {
         if (
           /(دوام|ساعات|متى تفتح|متى تقفل|مواعيد|hours|open|time)/i.test(text)
         ) {
-          await sendTextMessage(
-            from,
-            "🕒 ساعات العمل:\nمن 2 ظهراً إلى 10 مساءً",
-          );
+          await sendAndSave(from, "🕒 ساعات العمل:\nمن 2 ظهراً إلى 10 مساءً");
           markMessageProcessed(from, messageId);
           return res.sendStatus(200);
         }
@@ -883,7 +852,7 @@ app.post("/webhook", async (req, res) => {
             text,
           )
         ) {
-          await sendTextMessage(
+          await sendAndSave(
             from,
             `💎 خدماتنا:
 
@@ -910,7 +879,7 @@ app.post("/webhook", async (req, res) => {
 
         // ✅ TIME QUESTIONS
         if (/(كم ياخذ|كم يستغرق|مدة|وقت|time|duration)/i.test(text)) {
-          await sendTextMessage(
+          await sendAndSave(
             from,
             "⏱️ جلسة الليزر عادة تستغرق من 10 إلى 20 دقيقة حسب المنطقة 👍",
           );
@@ -920,7 +889,7 @@ app.post("/webhook", async (req, res) => {
 
         // ✅ Prices
         if (/(سعر|اسعار|الاسعار|price|prices|cost)/i.test(text)) {
-          await sendTextMessage(
+          await sendAndSave(
             from,
             `💰 الأسعار:
 
@@ -943,7 +912,7 @@ app.post("/webhook", async (req, res) => {
 
         // ✅ Offers
         if (/(عرض|عروض|offer|offers|discount)/i.test(text)) {
-          await sendTextMessage(
+          await sendAndSave(
             from,
             `🔥 العروض الحالية:
 
@@ -970,7 +939,7 @@ app.post("/webhook", async (req, res) => {
 
         // ✅ Payment methods
         if (/(دفع|طريقة الدفع|طرق الدفع|pay|payment|visa|mada)/i.test(text)) {
-          await sendTextMessage(
+          await sendAndSave(
             from,
             `💳 طرق الدفع المتاحة:
 
@@ -989,7 +958,7 @@ app.post("/webhook", async (req, res) => {
         if (
           /(انستقرام|انستغرام|instagram|سوشيال|تواصل|social|حساب)/i.test(text)
         ) {
-          await sendTextMessage(
+          await sendAndSave(
             from,
             `📱 حساباتنا على مواقع التواصل:
 
@@ -1008,14 +977,14 @@ https://www.instagram.com/beverlyhills.clinic?igsh=MXlyM21vcXlkdW5m&utm_source=q
             lang === "ar"
               ? "ما فهمت قصدك 😅 — ممكن توضح أكثر؟"
               : "Didn't catch that 😅 — could you rephrase?";
-          await sendTextMessage(from, msg);
+          await sendAndSave(from, msg);
           markMessageProcessed(from, messageId);
           return res.sendStatus(200);
         }
 
         // ✅ Filter 1.5: Complaint check
         if (isComplaint(text)) {
-          await sendTextMessage(
+          await sendAndSave(
             from,
             "نأسف جداً على هذه التجربة 🙏 — تواصل معنا مباشرة على 0590450555 وسنحرص على حل المشكلة في أقرب وقت.",
           );
@@ -1030,7 +999,7 @@ https://www.instagram.com/beverlyhills.clinic?igsh=MXlyM21vcXlkdW5m&utm_source=q
             lang === "ar"
               ? "هذا خارج تخصصي 😄 — في شيء يخص العيادة أقدر أساعدك فيه؟"
               : "That's outside my area 😄 — can I help you with anything clinic-related?";
-          await sendTextMessage(from, msg);
+          await sendAndSave(from, msg);
           markMessageProcessed(from, messageId);
           return res.sendStatus(200);
         }
@@ -1044,17 +1013,7 @@ https://www.instagram.com/beverlyhills.clinic?igsh=MXlyM21vcXlkdW5m&utm_source=q
           )
           .trim();
 
-        const finalReply = cleanedReply || rawReply;
-
-        await sendTextMessage(from, finalReply);
-
-        await saveWhatsAppMessage({
-          from: PHONE_NUMBER_ID,
-          to: from,
-          body: finalReply,
-          direction: "out",
-          messageId: Date.now().toString(),
-        });
+        await sendAndSave(from, cleanedReply || rawReply);
         markMessageProcessed(from, messageId);
         return res.sendStatus(200);
       }

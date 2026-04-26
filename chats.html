@@ -1,0 +1,1107 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>المحادثات - Clinic Dashboard</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap");
+
+      :root {
+        --bg: #0f0f13;
+        --surface: #18181f;
+        --surface2: #22222c;
+        --border: #2a2a38;
+        --accent: #a855f7;
+        --accent2: #d946ef;
+        --text: #f0f0f5;
+        --text-muted: #888899;
+        --green: #22c55e;
+        --bubble-out: #2d1f4a;
+        --bubble-in: #1e1e2a;
+        --sidebar-w: 320px;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "IBM Plex Sans Arabic", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        height: 100vh;
+        display: flex;
+        overflow: hidden;
+      }
+
+      /* ===== NAV SIDEBAR ===== */
+      .nav-sidebar {
+        width: 70px;
+        background: var(--surface);
+        border-left: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 16px 0;
+        gap: 8px;
+        z-index: 10;
+        order: 3;
+      }
+
+      .nav-sidebar .logo {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        margin-bottom: 16px;
+      }
+
+      .nav-link {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 18px;
+        transition: all 0.2s;
+        position: relative;
+      }
+
+      .nav-link:hover,
+      .nav-link.active {
+        background: var(--surface2);
+        color: var(--accent);
+      }
+
+      .nav-link .tooltip {
+        position: absolute;
+        left: calc(100% + 12px);
+        background: var(--surface2);
+        color: var(--text);
+        padding: 6px 10px;
+        border-radius: 8px;
+        font-size: 12px;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s;
+        border: 1px solid var(--border);
+      }
+
+      .nav-link:hover .tooltip {
+        opacity: 1;
+      }
+
+      /* ===== CONTACTS PANEL ===== */
+      .contacts-panel {
+        width: var(--sidebar-w);
+        background: var(--surface);
+        border-left: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        order: 2;
+      }
+
+      .panel-header {
+        padding: 20px 16px 16px;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .panel-header h2 {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .panel-header h2 i {
+        color: var(--accent);
+      }
+
+      .search-box {
+        position: relative;
+      }
+
+      .search-box input {
+        width: 100%;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 10px 16px 10px 40px;
+        color: var(--text);
+        font-family: inherit;
+        font-size: 13px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      .search-box input:focus {
+        border-color: var(--accent);
+      }
+      .search-box input::placeholder {
+        color: var(--text-muted);
+      }
+
+      .search-box i {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+
+      .contacts-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+      }
+
+      .contacts-list::-webkit-scrollbar {
+        width: 4px;
+      }
+      .contacts-list::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .contacts-list::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+      }
+
+      .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: background 0.15s;
+        position: relative;
+      }
+
+      .contact-item:hover {
+        background: var(--surface2);
+      }
+      .contact-item.active {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+      }
+
+      .avatar {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--accent), var(--accent2));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+        font-weight: 600;
+        color: white;
+      }
+
+      .contact-info {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .contact-name {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 3px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .contact-preview {
+        font-size: 12px;
+        color: var(--text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .contact-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+
+      .contact-time {
+        font-size: 11px;
+        color: var(--text-muted);
+      }
+
+      .unread-badge {
+        background: var(--accent);
+        color: white;
+        border-radius: 10px;
+        min-width: 18px;
+        height: 18px;
+        font-size: 10px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 5px;
+      }
+
+      /* ===== CHAT AREA ===== */
+      .chat-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        order: 1;
+        background: var(--bg);
+        background-image:
+          radial-gradient(
+            circle at 20% 80%,
+            rgba(168, 85, 247, 0.04) 0%,
+            transparent 50%
+          ),
+          radial-gradient(
+            circle at 80% 20%,
+            rgba(217, 70, 239, 0.04) 0%,
+            transparent 50%
+          );
+      }
+
+      /* Empty state */
+      .empty-state {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        color: var(--text-muted);
+      }
+
+      .empty-state .icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: var(--surface2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        color: var(--accent);
+        opacity: 0.5;
+      }
+
+      .empty-state p {
+        font-size: 15px;
+      }
+
+      /* Chat header */
+      .chat-header {
+        padding: 16px 24px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        display: none;
+      }
+
+      .chat-header .back-btn {
+        display: none;
+        background: none;
+        border: none;
+        color: var(--text-muted);
+        font-size: 18px;
+        cursor: pointer;
+        padding: 4px;
+      }
+
+      .chat-header .avatar {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+      }
+
+      .chat-header-info {
+        flex: 1;
+      }
+      .chat-header-info .name {
+        font-weight: 600;
+        font-size: 15px;
+      }
+      .chat-header-info .phone {
+        font-size: 12px;
+        color: var(--text-muted);
+        direction: ltr;
+        text-align: right;
+      }
+
+      .chat-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .chat-actions button {
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        color: var(--text-muted);
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 13px;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .chat-actions button:hover {
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+
+      /* Messages */
+      .messages-area {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        display: none;
+      }
+
+      .messages-area::-webkit-scrollbar {
+        width: 4px;
+      }
+      .messages-area::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .messages-area::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: 4px;
+      }
+
+      .date-divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 16px 0 8px;
+        color: var(--text-muted);
+        font-size: 12px;
+      }
+
+      .date-divider::before,
+      .date-divider::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border);
+      }
+
+      .message-row {
+        display: flex;
+        margin-bottom: 2px;
+        animation: fadeUp 0.2s ease;
+      }
+
+      @keyframes fadeUp {
+        from {
+          opacity: 0;
+          transform: translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message-row.outgoing {
+        justify-content: flex-start;
+      }
+      .message-row.incoming {
+        justify-content: flex-end;
+      }
+
+      .bubble {
+        max-width: 65%;
+        padding: 10px 14px;
+        border-radius: 18px;
+        font-size: 14px;
+        line-height: 1.5;
+        position: relative;
+        word-break: break-word;
+      }
+
+      .message-row.outgoing .bubble {
+        background: var(--bubble-in);
+        border-bottom-right-radius: 4px;
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+
+      .message-row.incoming .bubble {
+        background: linear-gradient(135deg, #3b1f6a, #2d1f4a);
+        border-bottom-left-radius: 4px;
+        color: white;
+      }
+
+      .bubble .time {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.4);
+        display: block;
+        margin-top: 4px;
+        text-align: left;
+      }
+
+      .message-row.outgoing .bubble .time {
+        color: var(--text-muted);
+        text-align: right;
+      }
+
+      .role-tag {
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        margin-bottom: 4px;
+        opacity: 0.7;
+      }
+
+      .message-row.incoming .role-tag {
+        color: var(--accent2);
+      }
+      .message-row.outgoing .role-tag {
+        color: var(--green);
+        text-align: right;
+      }
+
+      /* Typing / loading */
+      .loading-dots {
+        display: flex;
+        gap: 4px;
+        padding: 16px 24px;
+        display: none;
+      }
+
+      .loading-dots span {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--accent);
+        animation: bounce 0.8s infinite;
+      }
+
+      .loading-dots span:nth-child(2) {
+        animation-delay: 0.15s;
+      }
+      .loading-dots span:nth-child(3) {
+        animation-delay: 0.3s;
+      }
+
+      @keyframes bounce {
+        0%,
+        80%,
+        100% {
+          transform: scale(0.6);
+          opacity: 0.4;
+        }
+        40% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      /* Stats strip */
+      .chat-stats {
+        display: flex;
+        gap: 16px;
+        padding: 12px 24px;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        display: none;
+      }
+
+      .stat-pill {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--text-muted);
+        background: var(--surface2);
+        padding: 6px 12px;
+        border-radius: 20px;
+        border: 1px solid var(--border);
+      }
+
+      .stat-pill i {
+        color: var(--accent);
+        font-size: 11px;
+      }
+      .stat-pill strong {
+        color: var(--text);
+      }
+
+      /* Skeleton loader */
+      .skeleton {
+        background: linear-gradient(
+          90deg,
+          var(--surface2) 25%,
+          var(--border) 50%,
+          var(--surface2) 75%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 1.5s infinite;
+        border-radius: 8px;
+      }
+
+      @keyframes shimmer {
+        0% {
+          background-position: 200% 0;
+        }
+        100% {
+          background-position: -200% 0;
+        }
+      }
+
+      .skeleton-contact {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+      }
+
+      .skeleton-avatar {
+        width: 46px;
+        height: 46px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+      .skeleton-lines {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .skeleton-line {
+        height: 12px;
+      }
+      .skeleton-line.short {
+        width: 60%;
+      }
+
+      /* Empty contacts */
+      .no-contacts {
+        text-align: center;
+        padding: 40px 20px;
+        color: var(--text-muted);
+        font-size: 13px;
+      }
+
+      .no-contacts i {
+        font-size: 32px;
+        margin-bottom: 12px;
+        display: block;
+        opacity: 0.3;
+      }
+
+      /* Scrollbar */
+      * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--border) transparent;
+      }
+
+      /* Mobile */
+      @media (max-width: 768px) {
+        .contacts-panel {
+          position: fixed;
+          right: 70px;
+          top: 0;
+          bottom: 0;
+          z-index: 5;
+          transform: translateX(100%);
+          transition: transform 0.3s;
+          width: calc(100vw - 70px);
+        }
+
+        .contacts-panel.show {
+          transform: translateX(0);
+        }
+
+        .chat-header .back-btn {
+          display: block;
+        }
+        .nav-sidebar {
+          width: 70px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV SIDEBAR -->
+    <nav class="nav-sidebar">
+      <div class="logo">🏥</div>
+      <a href="dashboard.html" class="nav-link">
+        <i class="fa-solid fa-gauge"></i>
+        <span class="tooltip">لوحة القيادة</span>
+      </a>
+      <a href="notifications.html" class="nav-link">
+        <i class="fa-solid fa-bell"></i>
+        <span class="tooltip">التنبيهات</span>
+      </a>
+      <a href="analytics.html" class="nav-link">
+        <i class="fa-solid fa-rocket"></i>
+        <span class="tooltip">تحليلات</span>
+      </a>
+      <a href="booking.html" class="nav-link">
+        <i class="fa-solid fa-table"></i>
+        <span class="tooltip">جدول التواصل</span>
+      </a>
+      <a href="contactlist.html" class="nav-link">
+        <i class="fa-solid fa-address-book"></i>
+        <span class="tooltip">قائمة التواصل</span>
+      </a>
+      <a href="chats.html" class="nav-link active">
+        <i class="fa-solid fa-comments"></i>
+        <span class="tooltip">المحادثات</span>
+      </a>
+      <a href="offers.html" class="nav-link">
+        <i class="fa-solid fa-gift"></i>
+        <span class="tooltip">الحملات الاعلانية</span>
+      </a>
+      <a href="clinic-settings.html" class="nav-link">
+        <i class="fa-solid fa-gear"></i>
+        <span class="tooltip">إعدادات العيادة</span>
+      </a>
+    </nav>
+
+    <!-- CONTACTS PANEL -->
+    <div class="contacts-panel" id="contactsPanel">
+      <div class="panel-header">
+        <h2><i class="fa-brands fa-whatsapp"></i> المحادثات</h2>
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="ابحث برقم الهاتف أو الاسم..."
+            oninput="filterContacts()"
+          />
+        </div>
+      </div>
+      <div class="contacts-list" id="contactsList">
+        <!-- Skeletons -->
+        <div class="skeleton-contact" id="skeletonLoader">
+          <div class="skeleton skeleton-avatar"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton skeleton-line"></div>
+            <div class="skeleton skeleton-line short"></div>
+          </div>
+        </div>
+        <div class="skeleton-contact">
+          <div class="skeleton skeleton-avatar"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton skeleton-line"></div>
+            <div class="skeleton skeleton-line short"></div>
+          </div>
+        </div>
+        <div class="skeleton-contact">
+          <div class="skeleton skeleton-avatar"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton skeleton-line"></div>
+            <div class="skeleton skeleton-line short"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHAT AREA -->
+    <main class="chat-area">
+      <!-- Empty state -->
+      <div class="empty-state" id="emptyState">
+        <div class="icon"><i class="fa-brands fa-whatsapp"></i></div>
+        <p>اختر محادثة لعرضها</p>
+        <p style="font-size: 12px; opacity: 0.5">
+          جميع المحادثات مع العملاء عبر واتساب
+        </p>
+      </div>
+
+      <!-- Chat header -->
+      <div class="chat-header" id="chatHeader">
+        <button class="back-btn" onclick="closeChat()">
+          <i class="fa-solid fa-arrow-right"></i>
+        </button>
+        <div class="avatar" id="chatAvatar">؟</div>
+        <div class="chat-header-info">
+          <div class="name" id="chatName">-</div>
+          <div class="phone" id="chatPhone">-</div>
+        </div>
+        <div class="chat-actions">
+          <button onclick="copyPhone()">
+            <i class="fa-regular fa-copy"></i> نسخ الرقم
+          </button>
+          <button onclick="refreshChat()">
+            <i class="fa-solid fa-rotate-right"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="messages-area" id="messagesArea"></div>
+
+      <!-- Loading dots -->
+      <div class="loading-dots" id="loadingDots">
+        <span></span><span></span><span></span>
+      </div>
+
+      <!-- Stats -->
+      <div class="chat-stats" id="chatStats">
+        <div class="stat-pill">
+          <i class="fa-solid fa-message"></i>
+          رسائل العميل: <strong id="statUser">0</strong>
+        </div>
+        <div class="stat-pill">
+          <i class="fa-solid fa-robot"></i>
+          ردود البوت: <strong id="statBot">0</strong>
+        </div>
+        <div class="stat-pill">
+          <i class="fa-solid fa-calendar"></i>
+          أول تواصل: <strong id="statFirst">-</strong>
+        </div>
+        <div class="stat-pill">
+          <i class="fa-solid fa-clock"></i>
+          آخر نشاط: <strong id="statLast">-</strong>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const SUPABASE_URL = "https://ylsbmxedhycjqaorjkvm.supabase.co";
+      const SUPABASE_KEY =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc2JteGVkaHljanFhb3Jqa3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTk5NTUsImV4cCI6MjA3NjM5NTk1NX0.W61xOww2neu6RA4yCJUob66p4OfYcgLSVw3m3yttz1E";
+      const supabaseClient = window.supabase.createClient(
+        SUPABASE_URL,
+        SUPABASE_KEY,
+      );
+
+      let allContacts = [];
+      let activePhone = null;
+      let refreshInterval = null;
+
+      // ===== LOAD CONTACTS =====
+      async function loadContacts() {
+        const { data, error } = await supabaseClient
+          .from("messages")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        document
+          .getElementById("skeletonLoader")
+          ?.parentElement.querySelectorAll(".skeleton-contact")
+          .forEach((el) => el.remove());
+
+        if (error) {
+          console.error("Error loading messages:", error);
+          document.getElementById("contactsList").innerHTML =
+            '<div class="no-contacts"><i class="fa-solid fa-circle-exclamation"></i>خطأ في تحميل المحادثات<br><small>' +
+            error.message +
+            "</small></div>";
+          return;
+        }
+
+        if (!data || data.length === 0) {
+          document.getElementById("contactsList").innerHTML =
+            '<div class="no-contacts"><i class="fa-brands fa-whatsapp"></i>لا توجد محادثات بعد<br><small>ستظهر المحادثات هنا عند تفعيل تسجيل الرسائل</small></div>';
+          return;
+        }
+
+        // Group by phone number
+        const grouped = {};
+        data.forEach((msg) => {
+          const phone = msg.from_phone || msg.phone || "unknown";
+          if (!grouped[phone]) {
+            grouped[phone] = {
+              phone,
+              name: msg.contact_name || null,
+              messages: [],
+              lastMsg: null,
+              lastTime: null,
+              unread: 0,
+            };
+          }
+          grouped[phone].messages.push(msg);
+          if (!grouped[phone].lastMsg) {
+            grouped[phone].lastMsg = msg.body || msg.message || msg.text || "";
+            grouped[phone].lastTime = msg.created_at;
+          }
+        });
+
+        allContacts = Object.values(grouped);
+        renderContacts(allContacts);
+      }
+
+      function renderContacts(contacts) {
+        const list = document.getElementById("contactsList");
+        list.innerHTML = "";
+
+        if (contacts.length === 0) {
+          list.innerHTML =
+            '<div class="no-contacts"><i class="fa-solid fa-magnifying-glass"></i>لا توجد نتائج</div>';
+          return;
+        }
+
+        contacts.forEach((contact) => {
+          const initial = contact.name
+            ? contact.name.charAt(0)
+            : contact.phone.slice(-2);
+
+          const timeStr = contact.lastTime
+            ? formatTime(new Date(contact.lastTime))
+            : "";
+
+          const preview = contact.lastMsg
+            ? contact.lastMsg.length > 35
+              ? contact.lastMsg.slice(0, 35) + "..."
+              : contact.lastMsg
+            : "لا توجد رسائل";
+
+          const div = document.createElement("div");
+          div.className =
+            "contact-item" + (contact.phone === activePhone ? " active" : "");
+          div.onclick = () => openChat(contact.phone, contact.name);
+          div.dataset.phone = contact.phone;
+          div.innerHTML = `
+            <div class="avatar">${initial}</div>
+            <div class="contact-info">
+              <div class="contact-name">${contact.name || formatPhone(contact.phone)}</div>
+              <div class="contact-preview">${preview}</div>
+            </div>
+            <div class="contact-meta">
+              <span class="contact-time">${timeStr}</span>
+              ${contact.unread > 0 ? `<span class="unread-badge">${contact.unread}</span>` : ""}
+            </div>
+          `;
+          list.appendChild(div);
+        });
+      }
+
+      function filterContacts() {
+        const q = document
+          .getElementById("searchInput")
+          .value.trim()
+          .toLowerCase();
+        if (!q) {
+          renderContacts(allContacts);
+          return;
+        }
+        const filtered = allContacts.filter(
+          (c) =>
+            c.phone.includes(q) || (c.name && c.name.toLowerCase().includes(q)),
+        );
+        renderContacts(filtered);
+      }
+
+      // ===== OPEN CHAT =====
+      async function openChat(phone, name) {
+        activePhone = phone;
+        clearInterval(refreshInterval);
+
+        // Update active state in contacts
+        document.querySelectorAll(".contact-item").forEach((el) => {
+          el.classList.toggle("active", el.dataset.phone === phone);
+        });
+
+        // Update header
+        const initial = name ? name.charAt(0) : phone.slice(-2);
+        document.getElementById("chatAvatar").textContent = initial;
+        document.getElementById("chatName").textContent =
+          name || formatPhone(phone);
+        document.getElementById("chatPhone").textContent = phone;
+
+        // Show panels
+        document.getElementById("chatHeader").style.display = "flex";
+        document.getElementById("messagesArea").style.display = "flex";
+        document.getElementById("chatStats").style.display = "flex";
+        document.getElementById("emptyState").style.display = "none";
+        document.getElementById("loadingDots").style.display = "flex";
+
+        await loadMessages(phone);
+
+        document.getElementById("loadingDots").style.display = "none";
+
+        // Auto-refresh every 10 seconds
+        refreshInterval = setInterval(() => loadMessages(phone), 10000);
+      }
+
+      async function loadMessages(phone) {
+        const { data, error } = await supabaseClient
+          .from("messages")
+          .select("*")
+          .eq("from_phone", phone)
+          .order("created_at", { ascending: true });
+
+        if (error) {
+          console.error(error);
+          return;
+        }
+
+        renderMessages(data || []);
+      }
+
+      function renderMessages(msgs) {
+        const area = document.getElementById("messagesArea");
+        const wasAtBottom =
+          area.scrollHeight - area.clientHeight <= area.scrollTop + 60;
+
+        area.innerHTML = "";
+        let lastDate = "";
+        let userCount = 0;
+        let botCount = 0;
+        let firstTime = null;
+        let lastTime = null;
+
+        msgs.forEach((msg) => {
+          const date = new Date(msg.created_at);
+          const dateStr = date.toLocaleDateString("ar-SA", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+          });
+          const direction =
+            msg.direction ||
+            (msg.role === "assistant" ? "outgoing" : "incoming");
+
+          if (!firstTime) firstTime = date;
+          lastTime = date;
+
+          if (direction === "incoming") userCount++;
+          else botCount++;
+
+          if (dateStr !== lastDate) {
+            lastDate = dateStr;
+            const divider = document.createElement("div");
+            divider.className = "date-divider";
+            divider.textContent = dateStr;
+            area.appendChild(divider);
+          }
+
+          const row = document.createElement("div");
+          row.className = `message-row ${direction}`;
+
+          const timeStr = date.toLocaleTimeString("ar-SA", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+          const body = msg.body || msg.message || msg.text || "";
+
+          row.innerHTML = `
+            <div class="bubble">
+              <div class="role-tag">${direction === "incoming" ? "👤 العميل" : "🤖 البوت"}</div>
+              ${escapeHtml(body)}
+              <span class="time">${timeStr}</span>
+            </div>
+          `;
+
+          area.appendChild(row);
+        });
+
+        // Update stats
+        document.getElementById("statUser").textContent = userCount;
+        document.getElementById("statBot").textContent = botCount;
+        document.getElementById("statFirst").textContent = firstTime
+          ? firstTime.toLocaleDateString("ar-SA", {
+              month: "short",
+              day: "numeric",
+            })
+          : "-";
+        document.getElementById("statLast").textContent = lastTime
+          ? lastTime.toLocaleTimeString("ar-SA", {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : "-";
+
+        if (wasAtBottom || area.innerHTML) {
+          area.scrollTop = area.scrollHeight;
+        }
+      }
+
+      function closeChat() {
+        activePhone = null;
+        clearInterval(refreshInterval);
+        document.getElementById("chatHeader").style.display = "none";
+        document.getElementById("messagesArea").style.display = "none";
+        document.getElementById("chatStats").style.display = "none";
+        document.getElementById("emptyState").style.display = "flex";
+        document.getElementById("contactsPanel").classList.remove("show");
+      }
+
+      function refreshChat() {
+        if (activePhone) loadMessages(activePhone);
+      }
+
+      function copyPhone() {
+        const phone = document.getElementById("chatPhone").textContent;
+        navigator.clipboard.writeText(phone).then(() => {
+          const btn = document.querySelector(".chat-actions button");
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> تم النسخ';
+          setTimeout(
+            () =>
+              (btn.innerHTML = '<i class="fa-regular fa-copy"></i> نسخ الرقم'),
+            2000,
+          );
+        });
+      }
+
+      // ===== HELPERS =====
+      function formatPhone(phone) {
+        if (phone.startsWith("966")) return "0" + phone.slice(3);
+        return phone;
+      }
+
+      function formatTime(date) {
+        const now = new Date();
+        const diff = now - date;
+        if (diff < 60000) return "الآن";
+        if (diff < 3600000) return Math.floor(diff / 60000) + " د";
+        if (diff < 86400000) return Math.floor(diff / 3600000) + " س";
+        return date.toLocaleDateString("ar-SA", {
+          month: "short",
+          day: "numeric",
+        });
+      }
+
+      function escapeHtml(text) {
+        return String(text)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\n/g, "<br>");
+      }
+
+      // ===== INIT =====
+      loadContacts();
+      setInterval(loadContacts, 30000);
+    </script>
+  </body>
+</html>
