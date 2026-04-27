@@ -717,23 +717,31 @@
 
       let selectedFiles = [];
       let recipientPhones = [];
-      let allBookings = []; // Store all bookings for filtering
+      let allBookings = [];
 
-      // ── SENT-BEFORE TRACKING ──────────────────────────────────────────
+      // ── SENT-BEFORE TRACKING (with datetime) ─────────────────────────
       function getSentPhones() {
         try {
-          return JSON.parse(localStorage.getItem("clinic_sent_phones") || "[]");
+          return JSON.parse(
+            localStorage.getItem("clinic_sent_phones_v2") || "{}",
+          );
         } catch {
-          return [];
+          return {};
         }
       }
       function saveSentPhones(phones) {
-        const existing = new Set(getSentPhones());
-        phones.forEach((p) => existing.add(p));
-        localStorage.setItem(
-          "clinic_sent_phones",
-          JSON.stringify([...existing]),
-        );
+        const existing = getSentPhones();
+        const now = new Date().toLocaleString("ar-EG", {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        phones.forEach((p) => {
+          existing[p] = now;
+        });
+        localStorage.setItem("clinic_sent_phones_v2", JSON.stringify(existing));
       }
       // ─────────────────────────────────────────────────────────────────
 
@@ -920,7 +928,7 @@
         const phoneList = document.getElementById("phoneList");
         const phoneCount = document.getElementById("phoneCount");
 
-        const sentSet = new Set(getSentPhones());
+        const sentMap = getSentPhones(); // { phone: "datetime string" }
 
         if (recipientPhones.length === 0) {
           phoneList.innerHTML = `
@@ -933,7 +941,7 @@
           phoneList.innerHTML = recipientPhones
             .map(
               (p, index) => `
-            <div class="phone-tag" style="${sentSet.has(p.phone) ? "border-color:#f59e0b;background:#fffbeb;" : ""}">
+            <div class="phone-tag" style="${sentMap[p.phone] ? "border-color:#f59e0b;background:#fffbeb;" : ""}">
               <span class="phone-number">${p.phone}</span>
               <span class="phone-name">${p.name}</span>
               ${
@@ -941,7 +949,11 @@
                   ? `<span class="phone-service">${p.service}</span>`
                   : ""
               }
-              ${sentSet.has(p.phone) ? `<span title="تم الإرسال لهذا الرقم سابقاً" style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:4px;padding:2px 6px;white-space:nowrap;">⚠️ أُرسل سابقاً</span>` : ""}
+              ${
+                sentMap[p.phone]
+                  ? `<span title="تم الإرسال لهذا الرقم سابقاً" style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:4px;padding:2px 6px;white-space:nowrap;">⚠️ آخر إرسال: ${sentMap[p.phone]}</span>`
+                  : ""
+              }
               <button class="remove-phone" onclick="removePhone(${index})">×</button>
             </div>
           `,
