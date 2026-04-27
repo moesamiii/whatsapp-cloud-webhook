@@ -87,7 +87,6 @@
         color: #aaa;
       }
 
-      /* ✅ Preview styling for multiple images */
       .images-preview-container {
         display: flex;
         flex-wrap: wrap;
@@ -128,7 +127,6 @@
         margin: 0;
       }
 
-      /* ✅ Debug info box */
       .debug-info {
         background: #f0f0f0;
         border: 1px solid #ddd;
@@ -191,7 +189,6 @@
         color: #a855f7;
       }
 
-      /* ========== PHONE NUMBERS SECTION STYLES ========== */
       .recipients-section {
         background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
         border: 2px solid #22c55e;
@@ -246,7 +243,6 @@
         background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
       }
 
-      /* ========== LOAD FROM BOOKINGS SECTION ========== */
       .load-section {
         background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
         border: 2px solid #3b82f6;
@@ -376,8 +372,6 @@
         font-size: 11px;
         font-weight: 600;
       }
-
-      /* ========== END LOAD SECTION ========== */
 
       .phone-list {
         display: flex;
@@ -513,7 +507,6 @@
         background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
       }
 
-      /* Toast notification */
       .toast {
         position: fixed;
         bottom: 30px;
@@ -546,7 +539,6 @@
   </head>
 
   <body>
-    <!-- LOGIN SCREEN -->
     <div id="loginScreen">
       <div id="loginBox">
         <h2><i class="fas fa-lock"></i> تسجيل دخول المسؤول</h2>
@@ -559,7 +551,6 @@
       </div>
     </div>
 
-    <!-- MAIN DASHBOARD -->
     <div class="container">
       <aside class="sidebar" id="sidebar">
         <div class="logo">
@@ -642,14 +633,12 @@
             <label>تاريخ انتهاء العرض</label>
             <input type="date" id="offerDate" />
 
-            <!-- ✅ RECIPIENTS SECTION - ADD PHONE NUMBERS -->
             <div class="recipients-section">
               <div class="recipients-title">
                 <i class="fa-solid fa-users"></i>
                 المستلمون (أرقام الهواتف)
               </div>
 
-              <!-- Manual Add Phone -->
               <div class="add-phone-form">
                 <input
                   type="text"
@@ -668,7 +657,6 @@
                   <i class="fa-solid fa-file-excel"></i>
                   استيراد من Excel
                 </button>
-                <!-- ✅ ADD THIS -->
                 <button class="add-phone-btn" onclick="downloadTemplate()">
                   <i class="fa-solid fa-download"></i>
                   تحميل نموذج Excel
@@ -679,11 +667,6 @@
                 </button>
               </div>
 
-              <!-- ✅ NEW: Load from Bookings Section -->
-
-              <!-- ✅ END Load Section -->
-
-              <!-- Phone List -->
               <div class="phone-list" id="phoneList">
                 <div class="no-phones-msg">
                   <i class="fa-solid fa-phone-slash"></i>
@@ -695,7 +678,6 @@
                 عدد المستلمين: <strong>0</strong>
               </div>
 
-              <!-- Action Buttons -->
               <div class="action-buttons-row">
                 <button class="clear-all-btn" onclick="clearAllPhones()">
                   <i class="fa-solid fa-trash"></i>
@@ -703,13 +685,11 @@
                 </button>
               </div>
             </div>
-            <!-- ✅ END RECIPIENTS SECTION -->
 
             <div class="progress-info" id="progressInfo"></div>
 
             <button id="sendBtn" onclick="sendOffer()">إرسال العرض الآن</button>
 
-            <!-- Debug Info -->
             <div class="debug-info" id="debugInfo">
               <h4>🔍 معلومات التشخيص</h4>
               <div id="debugContent"></div>
@@ -721,12 +701,10 @@
       </main>
     </div>
 
-    <!-- Toast Notification -->
     <div class="toast" id="toast"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-      // 🔑 Supabase configuration
       const SUPABASE_URL = "https://ylsbmxedhycjqaorjkvm.supabase.co";
       const SUPABASE_KEY =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc2JteGVkaHljanFhb3Jqa3ZtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA4MTk5NTUsImV4cCI6MjA3NjM5NTk1NX0.W61xOww2neu6RA4yCJUob66p4OfYcgLSVw3m3yttz1E";
@@ -735,14 +713,30 @@
         SUPABASE_KEY,
       );
 
-      // ✅ Global variable to store clinic settings
       let clinicSettings = null;
 
       let selectedFiles = [];
-      let recipientPhones = []; // Array to store phone numbers with names
+      let recipientPhones = [];
       let allBookings = []; // Store all bookings for filtering
 
-      // ✅ Load clinic settings from database
+      // ── SENT-BEFORE TRACKING ──────────────────────────────────────────
+      function getSentPhones() {
+        try {
+          return JSON.parse(localStorage.getItem("clinic_sent_phones") || "[]");
+        } catch {
+          return [];
+        }
+      }
+      function saveSentPhones(phones) {
+        const existing = new Set(getSentPhones());
+        phones.forEach((p) => existing.add(p));
+        localStorage.setItem(
+          "clinic_sent_phones",
+          JSON.stringify([...existing]),
+        );
+      }
+      // ─────────────────────────────────────────────────────────────────
+
       async function loadClinicSettings() {
         const { data, error } = await supabaseClient
           .from("clinic_settings")
@@ -759,31 +753,26 @@
         applyClinicSettings();
       }
 
-      // ✅ Apply clinic settings to the UI
       function applyClinicSettings() {
         if (!clinicSettings) return;
 
         const clinicName = clinicSettings.clinic_name || "CLINIC DASHBOARD";
 
-        // Update sidebar logo
         const sidebarClinicName = document.getElementById("sidebarClinicName");
         if (sidebarClinicName) {
           sidebarClinicName.textContent =
             clinicName.toUpperCase() + " DASHBOARD";
         }
 
-        // Update footer
         const footerText = document.getElementById("footerText");
         if (footerText) {
           const currentYear = new Date().getFullYear();
           footerText.textContent = `© ${currentYear} ${clinicName}`;
         }
 
-        // Update page title
         document.title = "إرسال العروض المخصصة - " + clinicName;
       }
 
-      // Show toast notification
       function showToast(message, type = "success") {
         const toast = document.getElementById("toast");
         toast.textContent = message;
@@ -795,7 +784,6 @@
         }, 3000);
       }
 
-      // 🔍 Debug helper
       function addDebugLog(message, type = "info") {
         const debugContent = document.getElementById("debugContent");
         const debugInfo = document.getElementById("debugInfo");
@@ -814,8 +802,6 @@
         progressInfo.style.display = "block";
         progressInfo.textContent = message;
       }
-
-      // ========== LOAD BOOKINGS AND POPULATE FILTERS ==========
 
       async function loadBookingsData() {
         try {
@@ -837,14 +823,12 @@
         }
       }
 
-      // Populate service filter dropdown
       function populateServiceFilter() {
         const serviceFilter = document.getElementById("serviceFilter");
         const services = [
           ...new Set(allBookings.map((b) => b.service).filter(Boolean)),
         ];
 
-        // Keep the "all" option and add services
         serviceFilter.innerHTML = '<option value="all">جميع الخدمات</option>';
 
         services.forEach((service) => {
@@ -855,7 +839,6 @@
         });
       }
 
-      // Update service stats badges
       function updateServiceStats() {
         const statsContainer = document.getElementById("serviceStats");
         const serviceCounts = {};
@@ -882,15 +865,11 @@
           .join("");
       }
 
-      // Quick filter by clicking on service badge
       function quickFilterService(service) {
         document.getElementById("serviceFilter").value = service;
         loadFilteredBookings();
       }
 
-      // ========== PHONE NUMBER MANAGEMENT ==========
-
-      // Add phone number to list
       function addPhoneNumber() {
         const phoneInput = document.getElementById("phoneInput");
         const nameInput = document.getElementById("phoneNameInput");
@@ -903,37 +882,29 @@
           return;
         }
 
-        // Clean phone number
-
         phone = phone.replace(/[\s\-\(\)\+]/g, "");
 
-        // Check if already exists
         if (recipientPhones.some((p) => p.phone === phone)) {
           showToast("هذا الرقم موجود بالفعل", "warning");
           return;
         }
 
-        // Add to list
         recipientPhones.push({ phone, name, service: "يدوي" });
 
-        // Clear inputs
         phoneInput.value = "";
         nameInput.value = "";
 
-        // Update UI
         renderPhoneList();
         showToast("تم إضافة الرقم بنجاح");
         addDebugLog(`تم إضافة رقم يدوياً: ${phone} (${name})`);
       }
 
-      // Remove phone number from list
       function removePhone(index) {
         const removed = recipientPhones.splice(index, 1)[0];
         renderPhoneList();
         addDebugLog(`تم إزالة رقم: ${removed.phone}`);
       }
 
-      // Clear all phone numbers
       function clearAllPhones() {
         if (recipientPhones.length === 0) return;
 
@@ -945,10 +916,11 @@
         }
       }
 
-      // Render phone list UI
       function renderPhoneList() {
         const phoneList = document.getElementById("phoneList");
         const phoneCount = document.getElementById("phoneCount");
+
+        const sentSet = new Set(getSentPhones());
 
         if (recipientPhones.length === 0) {
           phoneList.innerHTML = `
@@ -961,7 +933,7 @@
           phoneList.innerHTML = recipientPhones
             .map(
               (p, index) => `
-            <div class="phone-tag">
+            <div class="phone-tag" style="${sentSet.has(p.phone) ? "border-color:#f59e0b;background:#fffbeb;" : ""}">
               <span class="phone-number">${p.phone}</span>
               <span class="phone-name">${p.name}</span>
               ${
@@ -969,6 +941,7 @@
                   ? `<span class="phone-service">${p.service}</span>`
                   : ""
               }
+              ${sentSet.has(p.phone) ? `<span title="تم الإرسال لهذا الرقم سابقاً" style="font-size:10px;background:#fef3c7;color:#92400e;border:1px solid #fcd34d;border-radius:4px;padding:2px 6px;white-space:nowrap;">⚠️ أُرسل سابقاً</span>` : ""}
               <button class="remove-phone" onclick="removePhone(${index})">×</button>
             </div>
           `,
@@ -979,9 +952,6 @@
         phoneCount.innerHTML = `عدد المستلمين: <strong>${recipientPhones.length}</strong>`;
       }
 
-      // ========== LOAD CONTACTS FUNCTIONS ==========
-
-      // Load filtered bookings
       async function loadFilteredBookings() {
         const serviceFilter = document.getElementById("serviceFilter").value;
         const statusFilter = document.getElementById("statusFilter").value;
@@ -991,17 +961,14 @@
         try {
           let filtered = [...allBookings];
 
-          // Apply service filter
           if (serviceFilter !== "all") {
             filtered = filtered.filter((b) => b.service === serviceFilter);
           }
 
-          // Apply status filter
           if (statusFilter !== "all") {
             filtered = filtered.filter((b) => b.status === statusFilter);
           }
 
-          // Add to recipients (avoid duplicates)
           const existingPhones = new Set(recipientPhones.map((p) => p.phone));
           let addedCount = 0;
 
@@ -1036,18 +1003,15 @@
         }
       }
 
-      // Load all contacts (bookings + contact list)
       async function loadAllContacts() {
         updateProgress("جاري تحميل جميع جهات الاتصال...");
 
         try {
-          // Load from bookings
           const { data: bookingData, error: bookingError } =
             await supabaseClient
               .from("bookings")
               .select("name, phone, service");
 
-          // Load from contact_list
           const { data: contactData, error: contactError } =
             await supabaseClient.from("contact_list").select("name, phone");
 
@@ -1055,11 +1019,9 @@
             throw bookingError || contactError;
           }
 
-          // Combine and remove duplicates
           const existingPhones = new Set(recipientPhones.map((p) => p.phone));
           let addedCount = 0;
 
-          // Add from bookings
           (bookingData || []).forEach((b) => {
             if (b.phone && !existingPhones.has(b.phone)) {
               existingPhones.add(b.phone);
@@ -1072,7 +1034,6 @@
             }
           });
 
-          // Add from contact list
           (contactData || []).forEach((c) => {
             if (c.phone && !existingPhones.has(c.phone)) {
               existingPhones.add(c.phone);
@@ -1105,7 +1066,6 @@
         }
       }
 
-      // Load only from contact list
       async function loadFromContactList() {
         updateProgress("جاري تحميل قائمة التواصل...");
 
@@ -1150,7 +1110,6 @@
         }
       }
 
-      // 🔐 Login logic
       async function login() {
         const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value.trim();
@@ -1166,8 +1125,8 @@
           document.getElementById("loginScreen").style.display = "none";
           document.getElementById("dashboardContent").style.display = "block";
           localStorage.setItem("clinic_logged_in", "true");
-          loadClinicSettings(); // ✅ Load settings after login
-          loadBookingsData(); // Load bookings after login
+          loadClinicSettings();
+          loadBookingsData();
         } else {
           document.getElementById("errorMsg").style.display = "block";
         }
@@ -1182,11 +1141,10 @@
       if (localStorage.getItem("clinic_logged_in") === "true") {
         document.getElementById("loginScreen").style.display = "none";
         document.getElementById("dashboardContent").style.display = "block";
-        loadClinicSettings(); // ✅ Load settings on startup
-        loadBookingsData(); // Load bookings on page load
+        loadClinicSettings();
+        loadBookingsData();
       }
 
-      // 🌙 Theme toggle
       const themeToggle = document.getElementById("themeToggle");
       themeToggle.addEventListener("click", function () {
         document.body.classList.toggle("dark");
@@ -1205,7 +1163,6 @@
         icon.classList.replace("fa-moon", "fa-sun");
       }
 
-      // 🖼️ Preview multiple images
       const offerImage = document.getElementById("offerImage");
       const imagesPreviewContainer = document.getElementById(
         "imagesPreviewContainer",
@@ -1243,7 +1200,6 @@
         addDebugLog(`تم إزالة صورة. المتبقي: ${selectedFiles.length} صورة`);
       }
 
-      // 🚀 Upload single image to Supabase
       async function uploadImage(file) {
         try {
           addDebugLog(`بدء رفع الصورة: ${file.name}`);
@@ -1330,7 +1286,6 @@
             return false;
           }
 
-          // Send full text as free-form (newlines allowed here)
           await new Promise((r) => setTimeout(r, 2000));
           const fullText = `${mainText}\n\n⏰ صالح حتى: ${date}\n\nاحجزي الآن!`;
           const textRes = await fetch(baseUrl, {
@@ -1416,25 +1371,21 @@
         const result = await res.json();
         return !!result.messages?.[0]?.id;
       }
-      function getSmartDelay(index) {
-        // Random delay between 4–8 seconds
-        const baseDelay = 4000 + Math.random() * 4000;
 
-        // Every 10 messages → longer break (20–40 seconds)
+      function getSmartDelay(index) {
+        const baseDelay = 4000 + Math.random() * 4000;
         if ((index + 1) % 10 === 0) {
           const cooldown = 20000 + Math.random() * 20000;
           return cooldown;
         }
-
         return baseDelay;
       }
-      // 🚀 Main send offer function
+
       async function sendOffer() {
         const sendBtn = document.getElementById("sendBtn");
         const text = document.getElementById("offerText").value.trim();
         const date = document.getElementById("offerDate").value;
 
-        // Clear previous debug logs
         document.getElementById("debugContent").innerHTML = "";
         document.getElementById("debugInfo").style.display = "block";
         document.getElementById("progressInfo").style.display = "none";
@@ -1445,14 +1396,12 @@
           return;
         }
 
-        // Check if there are recipients
         if (recipientPhones.length === 0) {
           alert("⚠️ يرجى إضافة رقم هاتف واحد على الأقل للإرسال.");
           addDebugLog("فشل: لا توجد أرقام مستلمين", "error");
           return;
         }
 
-        // Disable button during send
         sendBtn.disabled = true;
         sendBtn.innerHTML = 'جاري الإرسال... <span class="spinner"></span>';
 
@@ -1460,11 +1409,8 @@
           let totalSuccess = 0;
           let totalFail = 0;
 
-          // Upload images first if any
           let uploadedImageUrls = [];
 
-          // AFTER (preserves line breaks):
-          // AFTER:
           const mainText = text.trim();
 
           if (selectedFiles.length > 0) {
@@ -1486,7 +1432,6 @@
             );
           }
 
-          // Send to each recipient
           const totalRecipients = recipientPhones.length;
 
           for (let i = 0; i < recipientPhones.length; i++) {
@@ -1524,8 +1469,6 @@
               else totalFail++;
             }
 
-            // Wait between recipients
-            // Smart delay between recipients
             if (i < recipientPhones.length - 1) {
               const delay = getSmartDelay(i);
 
@@ -1543,6 +1486,7 @@
           );
 
           if (totalSuccess > 0) {
+            saveSentPhones(recipientPhones.map((p) => p.phone));
             alert(
               `✅ تم إرسال العرض بنجاح!\n📤 نجح: ${totalSuccess}\n❌ فشل: ${totalFail}`,
             );
@@ -1555,7 +1499,6 @@
           addDebugLog(`خطأ في الإرسال: ${err.message}`, "error");
           alert("❌ خطأ أثناء الإرسال: " + err.message);
         } finally {
-          // Re-enable button
           sendBtn.disabled = false;
           sendBtn.innerHTML = "إرسال العرض الآن";
           document.getElementById("progressInfo").style.display = "none";
@@ -1572,7 +1515,6 @@
         renderPhoneList();
       }
 
-      // 📱 Menu toggle for mobile
       const menuToggle = document.getElementById("menuToggle");
       const sidebar = document.getElementById("sidebar");
       if (menuToggle) {
@@ -1581,7 +1523,6 @@
         });
       }
 
-      // Initialize phone list on page load
       renderPhoneList();
     </script>
 
