@@ -13,17 +13,19 @@
       @import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap");
 
       :root {
-        --bg: #0f0f13;
-        --surface: #18181f;
-        --surface2: #22222c;
-        --border: #2a2a38;
-        --accent: #a855f7;
-        --accent2: #d946ef;
-        --text: #f0f0f5;
-        --text-muted: #888899;
-        --green: #22c55e;
-        --bubble-out: #2d1f4a;
-        --bubble-in: #1e1e2a;
+        --bg: #f5f4fb;
+        --surface: #ffffff;
+        --surface2: #f0eef9;
+        --border: #e2ddf5;
+        --accent: #7c3aed;
+        --accent2: #a855f7;
+        --accent-light: #ede9fe;
+        --accent-hover: #6d28d9;
+        --text: #1e1b30;
+        --text-muted: #7c7a8e;
+        --green: #16a34a;
+        --bubble-out: #f5f3ff;
+        --bubble-in: #ffffff;
         --sidebar-w: 320px;
       }
 
@@ -54,6 +56,7 @@
         gap: 8px;
         z-index: 10;
         order: 3;
+        box-shadow: -2px 0 12px rgba(124, 58, 237, 0.06);
       }
 
       .nav-sidebar .logo {
@@ -66,6 +69,7 @@
         justify-content: center;
         font-size: 18px;
         margin-bottom: 16px;
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
       }
 
       .nav-link {
@@ -82,17 +86,20 @@
         position: relative;
       }
 
-      .nav-link:hover,
+      .nav-link:hover {
+        background: var(--accent-light);
+        color: var(--accent);
+      }
       .nav-link.active {
-        background: var(--surface2);
+        background: var(--accent-light);
         color: var(--accent);
       }
 
       .nav-link .tooltip {
         position: absolute;
         left: calc(100% + 12px);
-        background: var(--surface2);
-        color: var(--text);
+        background: var(--text);
+        color: #fff;
         padding: 6px 10px;
         border-radius: 8px;
         font-size: 12px;
@@ -100,7 +107,6 @@
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.2s;
-        border: 1px solid var(--border);
       }
 
       .nav-link:hover .tooltip {
@@ -115,11 +121,13 @@
         display: flex;
         flex-direction: column;
         order: 2;
+        box-shadow: -1px 0 8px rgba(124, 58, 237, 0.05);
       }
 
       .panel-header {
         padding: 20px 16px 16px;
         border-bottom: 1px solid var(--border);
+        background: var(--surface);
       }
 
       .panel-header h2 {
@@ -129,10 +137,11 @@
         display: flex;
         align-items: center;
         gap: 8px;
+        color: var(--text);
       }
 
       .panel-header h2 i {
-        color: var(--accent);
+        color: #25d366;
       }
 
       .search-box {
@@ -142,18 +151,22 @@
       .search-box input {
         width: 100%;
         background: var(--surface2);
-        border: 1px solid var(--border);
+        border: 1.5px solid var(--border);
         border-radius: 10px;
         padding: 10px 16px 10px 40px;
         color: var(--text);
         font-family: inherit;
         font-size: 13px;
         outline: none;
-        transition: border-color 0.2s;
+        transition:
+          border-color 0.2s,
+          box-shadow 0.2s;
       }
 
       .search-box input:focus {
         border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+        background: #fff;
       }
       .search-box input::placeholder {
         color: var(--text-muted);
@@ -194,14 +207,15 @@
         cursor: pointer;
         transition: background 0.15s;
         position: relative;
+        border: 1px solid transparent;
       }
 
       .contact-item:hover {
         background: var(--surface2);
       }
       .contact-item.active {
-        background: var(--surface2);
-        border: 1px solid var(--border);
+        background: var(--accent-light);
+        border-color: rgba(124, 58, 237, 0.2);
       }
 
       .avatar {
@@ -216,6 +230,7 @@
         flex-shrink: 0;
         font-weight: 600;
         color: white;
+        box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
       }
 
       .contact-info {
@@ -230,6 +245,7 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        color: var(--text);
       }
 
       .contact-preview {
@@ -274,17 +290,6 @@
         flex-direction: column;
         order: 1;
         background: var(--bg);
-        background-image:
-          radial-gradient(
-            circle at 20% 80%,
-            rgba(168, 85, 247, 0.04) 0%,
-            transparent 50%
-          ),
-          radial-gradient(
-            circle at 80% 20%,
-            rgba(217, 70, 239, 0.04) 0%,
-            transparent 50%
-          );
       }
 
       /* Empty state */
@@ -302,17 +307,17 @@
         width: 80px;
         height: 80px;
         border-radius: 50%;
-        background: var(--surface2);
+        background: var(--accent-light);
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 32px;
         color: var(--accent);
-        opacity: 0.5;
       }
 
       .empty-state p {
         font-size: 15px;
+        color: var(--text-muted);
       }
 
       /* Chat header */
@@ -324,6 +329,7 @@
         align-items: center;
         gap: 12px;
         display: none;
+        box-shadow: 0 1px 4px rgba(124, 58, 237, 0.06);
       }
 
       .chat-header .back-btn {
@@ -348,6 +354,7 @@
       .chat-header-info .name {
         font-weight: 600;
         font-size: 15px;
+        color: var(--text);
       }
       .chat-header-info .phone {
         font-size: 12px;
@@ -363,12 +370,13 @@
 
       .chat-actions button {
         background: var(--surface2);
-        border: 1px solid var(--border);
+        border: 1.5px solid var(--border);
         color: var(--text-muted);
         border-radius: 8px;
         padding: 8px 12px;
         cursor: pointer;
         font-size: 13px;
+        font-family: inherit;
         transition: all 0.2s;
         display: flex;
         align-items: center;
@@ -378,6 +386,7 @@
       .chat-actions button:hover {
         color: var(--accent);
         border-color: var(--accent);
+        background: var(--accent-light);
       }
 
       /* Messages */
@@ -457,18 +466,20 @@
         background: var(--bubble-in);
         border-bottom-right-radius: 4px;
         color: var(--text);
-        border: 1px solid var(--border);
+        border: 1.5px solid var(--border);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
       }
 
       .message-row.incoming .bubble {
-        background: linear-gradient(135deg, #3b1f6a, #2d1f4a);
+        background: linear-gradient(135deg, var(--accent), #9333ea);
         border-bottom-left-radius: 4px;
         color: white;
+        box-shadow: 0 2px 10px rgba(124, 58, 237, 0.25);
       }
 
       .bubble .time {
         font-size: 10px;
-        color: rgba(255, 255, 255, 0.4);
+        color: rgba(255, 255, 255, 0.6);
         display: block;
         margin-top: 4px;
         text-align: left;
@@ -484,18 +495,18 @@
         font-weight: 700;
         letter-spacing: 0.5px;
         margin-bottom: 4px;
-        opacity: 0.7;
+        opacity: 0.75;
       }
 
       .message-row.incoming .role-tag {
-        color: var(--accent2);
+        color: rgba(255, 255, 255, 0.9);
       }
       .message-row.outgoing .role-tag {
-        color: var(--green);
+        color: var(--accent);
         text-align: right;
       }
 
-      /* Typing / loading */
+      /* Loading dots */
       .loading-dots {
         display: flex;
         gap: 4px;
@@ -534,11 +545,12 @@
       /* Stats strip */
       .chat-stats {
         display: flex;
-        gap: 16px;
+        gap: 12px;
         padding: 12px 24px;
         background: var(--surface);
         border-top: 1px solid var(--border);
         display: none;
+        flex-wrap: wrap;
       }
 
       .stat-pill {
@@ -548,7 +560,7 @@
         font-size: 12px;
         color: var(--text-muted);
         background: var(--surface2);
-        padding: 6px 12px;
+        padding: 6px 14px;
         border-radius: 20px;
         border: 1px solid var(--border);
       }
@@ -589,7 +601,6 @@
         gap: 12px;
         padding: 12px;
       }
-
       .skeleton-avatar {
         width: 46px;
         height: 46px;
@@ -624,7 +635,6 @@
         opacity: 0.3;
       }
 
-      /* Scrollbar */
       * {
         scrollbar-width: thin;
         scrollbar-color: var(--border) transparent;
@@ -646,7 +656,6 @@
         .contacts-panel.show {
           transform: translateX(0);
         }
-
         .chat-header .back-btn {
           display: block;
         }
@@ -709,7 +718,6 @@
         </div>
       </div>
       <div class="contacts-list" id="contactsList">
-        <!-- Skeletons -->
         <div class="skeleton-contact" id="skeletonLoader">
           <div class="skeleton skeleton-avatar"></div>
           <div class="skeleton-lines">
@@ -736,16 +744,14 @@
 
     <!-- CHAT AREA -->
     <main class="chat-area">
-      <!-- Empty state -->
       <div class="empty-state" id="emptyState">
         <div class="icon"><i class="fa-brands fa-whatsapp"></i></div>
         <p>اختر محادثة لعرضها</p>
-        <p style="font-size: 12px; opacity: 0.5">
+        <p style="font-size: 12px; opacity: 0.6">
           جميع المحادثات مع العملاء عبر واتساب
         </p>
       </div>
 
-      <!-- Chat header -->
       <div class="chat-header" id="chatHeader">
         <button class="back-btn" onclick="closeChat()">
           <i class="fa-solid fa-arrow-right"></i>
@@ -765,15 +771,12 @@
         </div>
       </div>
 
-      <!-- Messages -->
       <div class="messages-area" id="messagesArea"></div>
 
-      <!-- Loading dots -->
       <div class="loading-dots" id="loadingDots">
         <span></span><span></span><span></span>
       </div>
 
-      <!-- Stats -->
       <div class="chat-stats" id="chatStats">
         <div class="stat-pill">
           <i class="fa-solid fa-message"></i>
@@ -807,7 +810,6 @@
       let activePhone = null;
       let refreshInterval = null;
 
-      // ===== LOAD CONTACTS =====
       async function loadContacts() {
         const { data, error } = await supabaseClient
           .from("messages")
@@ -834,7 +836,6 @@
           return;
         }
 
-        // Group by phone number
         const grouped = {};
         data.forEach((msg) => {
           const phone = msg.from_phone || msg.phone || "unknown";
@@ -873,11 +874,9 @@
           const initial = contact.name
             ? contact.name.charAt(0)
             : contact.phone.slice(-2);
-
           const timeStr = contact.lastTime
             ? formatTime(new Date(contact.lastTime))
             : "";
-
           const preview = contact.lastMsg
             ? contact.lastMsg.length > 35
               ? contact.lastMsg.slice(0, 35) + "..."
@@ -920,24 +919,20 @@
         renderContacts(filtered);
       }
 
-      // ===== OPEN CHAT =====
       async function openChat(phone, name) {
         activePhone = phone;
         clearInterval(refreshInterval);
 
-        // Update active state in contacts
         document.querySelectorAll(".contact-item").forEach((el) => {
           el.classList.toggle("active", el.dataset.phone === phone);
         });
 
-        // Update header
         const initial = name ? name.charAt(0) : phone.slice(-2);
         document.getElementById("chatAvatar").textContent = initial;
         document.getElementById("chatName").textContent =
           name || formatPhone(phone);
         document.getElementById("chatPhone").textContent = phone;
 
-        // Show panels
         document.getElementById("chatHeader").style.display = "flex";
         document.getElementById("messagesArea").style.display = "flex";
         document.getElementById("chatStats").style.display = "flex";
@@ -945,10 +940,8 @@
         document.getElementById("loadingDots").style.display = "flex";
 
         await loadMessages(phone);
-
         document.getElementById("loadingDots").style.display = "none";
 
-        // Auto-refresh every 10 seconds
         refreshInterval = setInterval(() => loadMessages(phone), 10000);
       }
 
@@ -963,7 +956,6 @@
           console.error(error);
           return;
         }
-
         renderMessages(data || []);
       }
 
@@ -974,10 +966,10 @@
 
         area.innerHTML = "";
         let lastDate = "";
-        let userCount = 0;
-        let botCount = 0;
-        let firstTime = null;
-        let lastTime = null;
+        let userCount = 0,
+          botCount = 0,
+          firstTime = null,
+          lastTime = null;
 
         msgs.forEach((msg) => {
           const date = new Date(msg.created_at);
@@ -1021,11 +1013,9 @@
               <span class="time">${timeStr}</span>
             </div>
           `;
-
           area.appendChild(row);
         });
 
-        // Update stats
         document.getElementById("statUser").textContent = userCount;
         document.getElementById("statBot").textContent = botCount;
         document.getElementById("statFirst").textContent = firstTime
@@ -1041,9 +1031,7 @@
             })
           : "-";
 
-        if (wasAtBottom || area.innerHTML) {
-          area.scrollTop = area.scrollHeight;
-        }
+        if (wasAtBottom || area.innerHTML) area.scrollTop = area.scrollHeight;
       }
 
       function closeChat() {
@@ -1073,7 +1061,6 @@
         });
       }
 
-      // ===== HELPERS =====
       function formatPhone(phone) {
         if (phone.startsWith("966")) return "0" + phone.slice(3);
         return phone;
@@ -1099,7 +1086,6 @@
           .replace(/\n/g, "<br>");
       }
 
-      // ===== INIT =====
       loadContacts();
       setInterval(loadContacts, 30000);
     </script>
